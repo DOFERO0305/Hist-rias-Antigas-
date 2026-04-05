@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Histórias Virais | IA & Contos Antigos</title>
+    <title>Novelas & Histórias Virais</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -87,7 +87,7 @@
         <div class="nav-top">
             <div class="logo-container">
                 <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-                <div class="logo" onclick="window.location.reload()">Histórias<span>Virais</span></div>
+                <div class="logo" onclick="window.location.reload()">Novelas<span>Virais</span></div>
             </div>
             <button class="menu-btn" onclick="toggleTheme()"><i id="theme-icon" class="fas fa-sun"></i></button>
         </div>
@@ -95,8 +95,8 @@
 
     <div class="feed-header">
         <div style="display: flex; align-items: center;">
-            <i class="fas fa-fire" style="color: #e50914; margin-right: 8px;"></i> Histórias
-            <button class="refresh-btn" onclick="fetchContent()" title="Procurar novos vídeos"><i class="fas fa-sync-alt"></i></button>
+            <i class="fas fa-fire" style="color: #e50914; margin-right: 8px;"></i> Últimas Novelas
+            <button class="refresh-btn" onclick="fetchContent()" title="Procurar novos episódios"><i class="fas fa-sync-alt"></i></button>
         </div>
         <span class="feed-count" id="feed-count-label">A carregar...</span>
     </div>
@@ -113,12 +113,12 @@
                 <div class="modal-time-detail" id="m-time"><i class="far fa-clock"></i> Publicado há pouco</div>
                 
                 <div class="action-row">
-                    <button id="m-next-btn" class="btn-action btn-next"><i class="fas fa-step-forward"></i> Próxima História</button>
+                    <button id="m-next-btn" class="btn-action btn-next"><i class="fas fa-step-forward"></i> Próximo Episódio</button>
                     <button id="m-save-btn" class="btn-action btn-icon" onclick="toggleSave()"><i class="far fa-bookmark"></i></button>
                 </div>
 
                 <div class="related-section" id="related-section">
-                    <div class="related-title"><i class="fas fa-list-ul"></i> Mais Histórias:</div>
+                    <div class="related-title"><i class="fas fa-list-ul"></i> Mais Episódios:</div>
                     <div class="related-grid" id="m-related-grid"></div>
                 </div>
             </div>
@@ -126,9 +126,8 @@
     </div>
 
     <script>
-        // MOTOR ESTÁVEL RESTAURADO - Sem furar limites de segurança
-        const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
-        const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
+        // O TEU NOVO FEED DIRETO (Sem intermediários!)
+        const JSON_FEED_URL = 'https://rss.app/feeds/v1.1/pLHDGLOZ7P7y8AKi.json';
         
         let allItems = [];
         let displayedItems = 0;
@@ -140,7 +139,7 @@
 
         function calcularTempoPassado(dataPublicacao) {
             if(!dataPublicacao) return "Novo";
-            const data = new Date(dataPublicacao.replace(/-/g, "/")); 
+            const data = new Date(dataPublicacao); 
             const agora = new Date();
             const segundos = Math.floor((agora - data) / 1000);
 
@@ -182,23 +181,37 @@
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                // Pedido direto e seguro à API
-                const res = await fetch(JSON_API_URL);
+                // FURA-CACHE MATEMÁTICO: Anexa os milissegundos para forçar o ficheiro mais recente
+                const tempoExato = new Date().getTime();
+                const urlLimpa = `${JSON_FEED_URL}?forcar=${tempoExato}`;
+                
+                // Pedido super rápido porque o ficheiro já é JSON puro
+                const res = await fetch(urlLimpa, { cache: "no-store" });
                 const data = await res.json();
                 
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_v6') || '[]');
+                // Memória específica para Novelas
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_novelas') || '[]');
                 let novosEncontrados = false;
                 
-                if(data.status === "ok" && data.items && data.items.length > 0) {
+                if(data.items && data.items.length > 0) {
                     data.items.forEach(newItem => {
-                        if (!cachedData.some(oldItem => oldItem.guid === newItem.guid)) {
-                            cachedData.push(newItem);
+                        // Verifica se a novela já existe na memória
+                        if (!cachedData.some(oldItem => oldItem.id === newItem.id || oldItem.url === newItem.url)) {
+                            // Adaptação dos campos do JSON Feed
+                            cachedData.push({
+                                guid: newItem.id || newItem.url,
+                                title: newItem.title || "Novela sem título",
+                                link: newItem.url,
+                                pubDate: newItem.date_published,
+                                thumbnail: newItem.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'
+                            });
                             novosEncontrados = true;
                         }
                     });
                     
+                    // Ordena sempre pela data exata
                     cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                    localStorage.setItem('historias_cache_v6', JSON.stringify(cachedData));
+                    localStorage.setItem('historias_cache_novelas', JSON.stringify(cachedData));
                 }
                 
                 allItems = cachedData;
@@ -210,10 +223,11 @@
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems(); 
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma história encontrada.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma novela encontrada.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
+                    // Atualiza silenciosamente em segundo plano
                     document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
                     const feed = document.getElementById('feed');
                     feed.innerHTML = '';
@@ -225,28 +239,28 @@
                 }
 
             } catch (e) { 
+                console.error(e);
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_v6') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_novelas') || '[]');
                     if(allItems.length > 0) {
                         document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems();
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica em atualizar.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica no botão azul para atualizar.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 }
             }
             
-            // Faz o ícone parar de girar se foi clicado manualmente
+            // Para a animação do botão se tiver sido clicado
             const btnIcon = document.querySelector('.refresh-btn i');
             if(btnIcon) btnIcon.classList.remove('fa-spin');
             
             isFetching = false;
         }
 
-        // Se o utilizador clicar em atualizar, roda o ícone
         document.querySelector('.refresh-btn').addEventListener('click', function() {
             this.querySelector('i').classList.add('fa-spin');
         });
@@ -256,7 +270,7 @@
             card.className = 'movie-card';
             card.onclick = () => openModal(item);
             
-            const imgUrl = item.thumbnail || item.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+            const imgUrl = item.thumbnail;
             const tempoStr = calcularTempoPassado(item.pubDate);
             
             card.innerHTML = `
@@ -286,15 +300,27 @@
             }
         }
 
-        // O RASTREADOR: Seguro. Procura em segundo plano vídeos novos a cada 5 minutos
-        setInterval(() => { fetchContent(true); }, 300000); 
+        // Atualiza a etiqueta de tempo visual no site a cada 1 minuto
+        setInterval(() => {
+            if(!isSavedView && displayedItems > 0) {
+                const feed = document.getElementById('feed');
+                feed.innerHTML = '';
+                let limite = displayedItems;
+                displayedItems = 0;
+                allItems.slice(0, limite).forEach(item => desenharCartao(item, feed));
+                displayedItems = limite;
+            }
+        }, 60000);
+
+        // O RASTREADOR: Seguro. Procura em segundo plano vídeos novos a cada 2 minutos
+        setInterval(() => { fetchContent(true); }, 120000); 
 
         function openModal(item) {
             selectedItem = item;
             let currentList = isSavedView ? JSON.parse(localStorage.getItem('historias_salvas') || '[]') : allItems;
             currentIndex = currentList.findIndex(x => x.guid === item.guid);
             
-            let rawTitle = item.title || "História";
+            let rawTitle = item.title || "Novela";
             rawTitle = rawTitle.split('#')[0].trim(); 
             document.getElementById('m-title').innerText = rawTitle;
             
@@ -316,11 +342,10 @@
             if(otherItems.length > 0) {
                 otherItems.forEach(rel => {
                     let relTitle = rel.title ? rel.title.split('#')[0].trim() : "Ver mais";
-                    const imgUrl = rel.thumbnail || rel.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                     const div = document.createElement('div');
                     div.className = 'related-item';
                     div.onclick = () => { openModal(rel); document.querySelector('.modal-content').scrollTop = 0; };
-                    div.innerHTML = `<img src="${imgUrl}"><div class="related-item-title">${relTitle}</div>`;
+                    div.innerHTML = `<img src="${rel.thumbnail}" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'"><div class="related-item-title">${relTitle}</div>`;
                     relatedContainer.appendChild(div);
                 });
                 document.getElementById('related-section').style.display = 'block';
@@ -385,7 +410,7 @@
             } else {
                 btn.classList.remove('active');
                 document.getElementById('feed-count-label').style.display = 'block';
-                document.querySelector('.feed-header span:first-child').innerHTML = '<i class="fas fa-fire" style="color: #e50914;"></i> Últimas Histórias';
+                document.querySelector('.feed-header span:first-child').innerHTML = '<i class="fas fa-fire" style="color: #e50914;"></i> Últimas Novelas';
                 document.querySelector('.refresh-btn').style.display = 'inline-block';
                 
                 displayedItems = 0;
