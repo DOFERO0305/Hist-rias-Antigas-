@@ -6,13 +6,12 @@
     <title>Histórias Virais | IA & Contos Antigos</title>
     
     <meta property="og:title" content="Histórias Virais | IA & Contos Antigos">
-    <meta property="og:description" content="Assiste às melhores histórias geradas por IA e contos antigos diretamente do Facebook.">
+    <meta property="og:description" content="Assiste às melhores histórias geradas por IA e contos antigos diretamente aqui.">
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Variáveis de Cor - Ajustadas para um tom mais místico/azul Facebook */
         :root { 
             --primary: #1877F2; 
             --bg: #141414; 
@@ -51,15 +50,13 @@
 
         /* Sidebar */
         .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; opacity: 0; transition: 0.3s; }
-        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--bg); z-index: 2001; transition: 0.3s ease-in-out; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.2); border-right: 1px solid var(--border); }
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--bg); z-index: 2001; transition: 0.3s ease-in-out; padding: 20px; display: flex; flex-direction: column; box-shadow: 5px 0 15px rgba(0,0,0,0.2); border-right: 1px solid var(--border); }
         .sidebar.open { left: 0; }
         .sidebar-close { align-self: flex-end; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; margin-bottom: 10px; }
         .sidebar h3 { color: var(--text-meta); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 20px; }
         
         .side-cat { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); padding: 12px 10px; font-size: 1rem; cursor: pointer; transition: 0.2s; border-radius: 8px; margin-bottom: 5px; }
         .side-cat:hover, .side-cat.active { background: var(--surface); color: var(--primary); }
-        .sidebar-footer { margin-top: auto; font-size: 0.85rem; color: var(--text-meta); text-align: left; border-top: 1px solid var(--border); padding-top: 15px; line-height: 1.8; }
-        .sidebar-footer i { width: 20px; color: var(--primary); }
 
         /* Feed */
         .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
@@ -73,29 +70,30 @@
         .no-results { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-meta); }
 
         /* Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
-        .modal-content { background: var(--bg); max-width: 600px; width: 100%; border-radius: 16px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 95vh; overflow-y: auto; border: 1px solid var(--border); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
+        .modal-content { background: var(--bg); max-width: 500px; width: 100%; border-radius: 16px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 95vh; overflow-y: auto; border: 1px solid var(--border); }
         .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; }
         
-        .modal-info { padding: 25px; margin-top: 20px; }
-        .modal-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; color: var(--text); }
-        .modal-overview { font-size: 1rem; line-height: 1.5; margin-bottom: 20px; color: var(--text-meta); }
+        .modal-info { padding: 20px; }
+        .modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; color: var(--text); line-height: 1.3; margin-top: 10px;}
         
-        .trailer-container { position: relative; width: 100%; display: flex; justify-content: center; background: #000; border-radius: var(--radius-md); overflow: hidden; padding-top: 15px; padding-bottom: 15px; margin-bottom: 20px; min-height: 400px;}
-        .trailer-container iframe { max-width: 100%; border: none; border-radius: 8px;}
+        .trailer-container { position: relative; width: 100%; display: flex; justify-content: center; background: #000; border-radius: var(--radius-md); overflow: hidden; min-height: 400px;}
+        .trailer-container iframe { width: 100%; height: 500px; border: none; border-radius: 8px;}
         
-        .action-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; background: rgba(128,128,128,0.1); padding: 15px; border-radius: var(--radius-md); }
-        .btn-action { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; min-width: 130px; text-decoration: none; }
-        .btn-watch { background: var(--primary); color: white; }
-        .btn-icon { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .action-row { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
+        .btn-action { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-next { background: #e50914; color: white; }
+        .btn-icon { background: var(--surface); color: var(--text); border: 1px solid var(--border); flex: 0.3; }
 
-        /* Floating elements */
-        .whatsapp-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
-        .whatsapp-float { background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
+        /* Related Stories inside Modal */
+        .related-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .related-title { font-size: 1rem; font-weight: 700; color: var(--text-meta); margin-bottom: 10px; }
+        .related-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        .related-item { min-width: 100px; max-width: 100px; cursor: pointer; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+        .related-item img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .related-item-title { position: absolute; bottom: 0; background: rgba(0,0,0,0.8); color: white; width: 100%; font-size: 0.7rem; padding: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .loader { text-align: center; padding: 20px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; opacity: 0; transition: 0.3s; min-height: 80px; }
-        
-        #google_translate_element select { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 5px; border-radius: 5px; outline: none; margin-bottom: 15px;}
-        .goog-te-banner-frame { display: none !important; }
     </style>
 </head>
 <body>
@@ -104,19 +102,9 @@
     <div class="sidebar" id="sidebar">
         <button class="sidebar-close" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         
-        <h3><i class="fas fa-language"></i> Traduzir Site</h3>
-        <div id="google_translate_element"></div>
-
         <h3><i class="fas fa-bars"></i> Menu</h3>
-        <button class="side-cat active" onclick="toggleSidebar()"><i class="fas fa-home"></i> Início</button>
-        <button id="sidebar-bookmark-btn" class="side-cat" onclick="toggleSavedView()"><i class="fas fa-bookmark"></i> Favoritos</button>
-
-        <div class="sidebar-footer">
-            <strong>Histórias Virais</strong> &copy; 2026<br>
-            Criado Por Donaldo F. Rodrigues<br><br>
-            <a href="mailto:donald.fer.fer@gmail.com" style="color: var(--text-meta); text-decoration: none;"><i class="fas fa-envelope"></i> donald.fer.fer@gmail.com</a><br>
-            <a href="https://wa.me/258849085157" style="color: var(--text-meta); text-decoration: none;" target="_blank"><i class="fas fa-phone"></i> +258 84 908 5157</a>
-        </div>
+        <button class="side-cat active" onclick="window.location.reload()"><i class="fas fa-home"></i> Início</button>
+        <button id="sidebar-bookmark-btn" class="side-cat" onclick="toggleSavedView()"><i class="fas fa-bookmark"></i> Minha Lista</button>
     </div>
 
     <nav class="navbar">
@@ -125,7 +113,7 @@
                 <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
                 <div class="logo" onclick="window.location.reload()">Histórias<span>Virais</span></div>
             </div>
-            <button class="menu-btn" onclick="toggleTheme()" title="Mudar Tema"><i id="theme-icon" class="fas fa-sun"></i></button>
+            <button class="menu-btn" onclick="toggleTheme()"><i id="theme-icon" class="fas fa-sun"></i></button>
         </div>
     </nav>
 
@@ -144,38 +132,30 @@
                 <div class="trailer-container" id="m-trailer"></div>
                 
                 <h2 id="m-title" class="modal-title">Título</h2>
-                <p id="m-desc" class="modal-overview">A carregar descrição...</p>
 
                 <div class="action-row">
-                    <a id="m-watch-btn" href="#" target="_blank" class="btn-action btn-watch"><i class="fab fa-facebook"></i> Abrir no FB</a>
-                    <button class="btn-action btn-icon" onclick="partilharConteudo()" title="Partilhar"><i class="fas fa-share-alt"></i></button>
-                    <button id="m-save-btn" class="btn-action btn-icon" onclick="toggleSave()" title="Guardar"><i class="far fa-bookmark"></i></button>
+                    <button id="m-next-btn" class="btn-action btn-next"><i class="fas fa-step-forward"></i> Próxima História</button>
+                    <button class="btn-action btn-icon" onclick="partilharWhatsApp()" title="Partilhar no WhatsApp" style="color: #25D366; border-color: #25D366;"><i class="fab fa-whatsapp"></i></button>
+                    <button id="m-save-btn" class="btn-action btn-icon" onclick="toggleSave()"><i class="far fa-bookmark"></i></button>
                 </div>
+
+                <div class="related-section" id="related-section">
+                    <div class="related-title">Continuar a assistir:</div>
+                    <div class="related-grid" id="m-related-grid"></div>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <div class="whatsapp-container">
-        <a href="https://wa.me/258849085157" class="whatsapp-float" target="_blank">
-            <i class="fab fa-whatsapp"></i>
-        </a>
-    </div>
-
-    <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({pageLanguage: 'pt', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-        }
-    </script>
-    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
     <script>
-        // Usamos a API gratuita rss2json para converter o teu feed XML do rss.app para JSON facilmente
         const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
         const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
 
         let allItems = [];
         let selectedItem = null;
         let isSavedView = false;
+        let currentIndex = 0;
 
         function toggleTheme() {
             document.body.classList.toggle('light-mode');
@@ -207,15 +187,9 @@
                     allItems = data.items;
                     renderGrid(allItems);
                 } else {
-                    document.getElementById('feed').innerHTML = `
-                        <div class="no-results">
-                            <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom:15px;"></i>
-                            <h2>Nenhuma história encontrada.</h2>
-                            <p>Tenta atualizar a página mais tarde.</p>
-                        </div>`;
+                    document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma história encontrada.</div>";
                 }
             } catch (e) { 
-                console.error("Erro ao carregar o feed:", e); 
                 document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Tenta novamente.</div>";
             }
             document.getElementById('loader').style.display = 'none';
@@ -226,7 +200,7 @@
             feed.innerHTML = '';
             
             if(items.length === 0) {
-                 feed.innerHTML = "<div class='no-results'>Nenhuma história gravada nos favoritos.</div>";
+                 feed.innerHTML = "<div class='no-results'>Nenhuma história aqui.</div>";
                  return;
             }
 
@@ -235,7 +209,6 @@
                 card.className = 'movie-card';
                 card.onclick = () => openModal(item);
                 
-                // Tenta puxar a imagem da miniatura do feed. Se não existir, usa uma imagem padrão.
                 const imgUrl = item.thumbnail || item.enclosure.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                 
                 card.innerHTML = `
@@ -248,62 +221,81 @@
 
         function openModal(item) {
             selectedItem = item;
+            currentIndex = allItems.findIndex(x => x.guid === item.guid);
             
-            // Limpa o título do lixo que o RSS às vezes traz (como links no meio do texto)
-            let rawTitle = item.title || "História Gerada";
-            rawTitle = rawTitle.length > 80 ? rawTitle.substring(0, 80) + "..." : rawTitle;
-            
+            // Limpa o título
+            let rawTitle = item.title || "História Incrível";
+            rawTitle = rawTitle.split('#')[0].trim(); 
             document.getElementById('m-title').innerText = rawTitle;
             
-            // Formata a descrição retirando as tags HTML que vêm no feed
-            let tempDiv = document.createElement("div");
-            tempDiv.innerHTML = item.description || "";
-            document.getElementById('m-desc').innerText = tempDiv.textContent || tempDiv.innerText || "Assiste ao vídeo para descobrir a história.";
-            
-            const watchBtn = document.getElementById('m-watch-btn');
-            watchBtn.href = item.link; 
-
-            // Integrar o Reel do Facebook
+            // Player do Facebook
             const fbUrlCodificado = encodeURIComponent(item.link);
             document.getElementById('m-trailer').innerHTML = `
-                <iframe src="https://www.facebook.com/plugins/video.php?href=${fbUrlCodificado}&show_text=false&width=350" width="350" height="600" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+                <iframe src="https://www.facebook.com/plugins/video.php?href=${fbUrlCodificado}&show_text=false&width=350" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
             `;
+
+            // Configura botão Próximo
+            document.getElementById('m-next-btn').onclick = () => playNext();
+
+            // Povoa a secção "Histórias Relacionadas"
+            const relatedContainer = document.getElementById('m-related-grid');
+            relatedContainer.innerHTML = '';
+            
+            // Pega 5 histórias diferentes da atual
+            const otherItems = allItems.filter(x => x.guid !== item.guid).slice(0, 5);
+            
+            if(otherItems.length > 0) {
+                otherItems.forEach(rel => {
+                    const imgUrl = rel.thumbnail || rel.enclosure.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                    let relTitle = rel.title ? rel.title.split('#')[0].trim() : "História";
+                    
+                    const div = document.createElement('div');
+                    div.className = 'related-item';
+                    div.onclick = () => openModal(rel); // Quando clica, atualiza o leitor na mesma página!
+                    div.innerHTML = `
+                        <img src="${imgUrl}">
+                        <div class="related-item-title">${relTitle}</div>
+                    `;
+                    relatedContainer.appendChild(div);
+                });
+                document.getElementById('related-section').style.display = 'block';
+            } else {
+                document.getElementById('related-section').style.display = 'none';
+            }
 
             updateActionBtns();
             document.getElementById('modal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
 
+        function playNext() {
+            currentIndex++;
+            if (currentIndex >= allItems.length) { currentIndex = 0; }
+            openModal(allItems[currentIndex]);
+        }
+
         function closeModal(event, force = false) {
             if (force || event.target.id === 'modal') {
                 document.getElementById('modal').style.display = 'none';
                 document.body.style.overflow = 'auto';
-                document.getElementById('m-trailer').innerHTML = ''; // Corta o áudio quando fecha
+                document.getElementById('m-trailer').innerHTML = ''; // Corta o áudio
             }
         }
 
-        function partilharConteudo() {
-            if (navigator.share) { 
-                navigator.share({ title: `Vê esta história!`, url: selectedItem.link }).catch(console.error); 
-            } else {
-                prompt("Copia este link para partilhar:", selectedItem.link);
-            }
+        function partilharWhatsApp() {
+            const texto = encodeURIComponent(`Olha que história incrível! 😱\nAssiste aqui: ${selectedItem.link}`);
+            window.open(`https://wa.me/?text=${texto}`, '_blank');
         }
 
         function toggleSave() {
             let saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
             const idx = saved.findIndex(x => x.guid === selectedItem.guid);
             
-            if(idx > -1) {
-                saved.splice(idx, 1); 
-            } else {
-                saved.push(selectedItem);
-            }
+            if(idx > -1) { saved.splice(idx, 1); } 
+            else { saved.push(selectedItem); }
             
             localStorage.setItem('historias_salvas', JSON.stringify(saved));
             updateActionBtns();
-            
-            // Se estiver na view de favoritos, atualiza a grelha em tempo real
             if(isSavedView) renderGrid(saved);
         }
 
@@ -315,7 +307,7 @@
             if(isSavedView) {
                 btn.classList.add('active');
                 const saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
-                document.querySelector('.feed-header').innerHTML = '<i class="fas fa-bookmark" style="color: var(--text);"></i> Minhas Histórias Salvas';
+                document.querySelector('.feed-header').innerHTML = '<i class="fas fa-bookmark" style="color: var(--text);"></i> Minha Lista';
                 renderGrid(saved);
             } else {
                 btn.classList.remove('active');
@@ -331,14 +323,13 @@
             
             if(isSaved) { 
                 saveBtn.style.color = '#1877F2'; 
-                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Guardado'; 
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i>'; 
             } else { 
                 saveBtn.style.color = 'var(--text)'; 
-                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Guardar'; 
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i>'; 
             }
         }
 
-        // Arranca o carregamento inicial
         window.onload = () => { fetchContent(); };
     </script>
 
@@ -346,23 +337,15 @@
     /* <![CDATA[ */
         (function (document, window) {
             var a, c = document.createElement("script"), f = window.frameElement;
-
             c.id = "CleverCoreLoader101444";
             c.src = "https://scripts.cleverwebserver.com/532b25ff0fd3ba268c101f0840b2b10a.js";
-
             c.async = !0;
             c.type = "text/javascript";
             c.setAttribute("data-target", window.name || (f && f.getAttribute("id")));
             c.setAttribute("data-callback", "put-your-callback-function-here");
             c.setAttribute("data-callback-url-click", "put-your-click-macro-here");
             c.setAttribute("data-callback-url-view", "put-your-view-macro-here");
-
-            try {
-                a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0];
-            } catch (e) {
-                a = !1;
-            }
-
+            try { a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0]; } catch (e) { a = !1; }
             a || (a = document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]);
             a.parentNode.insertBefore(c, a);
         })(document, window);
