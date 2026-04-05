@@ -31,7 +31,10 @@
 
         .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         .feed-count { font-size: 0.9rem; color: var(--text-meta); font-weight: normal; }
-        
+        .refresh-btn { background: none; border: none; color: var(--primary); font-size: 1.2rem; cursor: pointer; transition: 0.2s; padding: 5px; margin-left: 10px; }
+        .refresh-btn:hover { transform: rotate(180deg); }
+        .refresh-btn:active { transform: scale(0.8); }
+
         .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
         @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
         
@@ -92,7 +95,10 @@
     </nav>
 
     <div class="feed-header">
-        <span><i class="fas fa-fire" style="color: #e50914;"></i> Últimas Histórias</span>
+        <div style="display: flex; align-items: center;">
+            <i class="fas fa-fire" style="color: #e50914; margin-right: 8px;"></i> Histórias
+            <button class="refresh-btn" onclick="fetchContent()" title="Procurar novos vídeos agora!"><i class="fas fa-sync-alt"></i></button>
+        </div>
         <span class="feed-count" id="feed-count-label">A carregar...</span>
     </div>
 
@@ -131,21 +137,18 @@
         let currentIndex = 0;
         let isFetching = false;
 
-        // Calcula exatamente há quantos segundos/minutos/horas o vídeo foi publicado
+        // Calculadora de tempo real
         function calcularTempoPassado(dataPublicacao) {
             if(!dataPublicacao) return "Novo";
-            const data = new Date(dataPublicacao.replace(/-/g, "/")); // Fix para iOS/Safari
+            const data = new Date(dataPublicacao.replace(/-/g, "/")); 
             const agora = new Date();
             const segundos = Math.floor((agora - data) / 1000);
 
             if (segundos < 60) return "Há " + Math.max(1, segundos) + " segundos";
-            
             const minutos = Math.floor(segundos / 60);
             if (minutos < 60) return "Há " + minutos + " minuto" + (minutos > 1 ? "s" : "");
-            
             const horas = Math.floor(segundos / 3600);
             if (horas < 24) return "Há " + horas + " hora" + (horas > 1 ? "s" : "");
-            
             const dias = Math.floor(segundos / 86400);
             return "Há " + dias + " dia" + (dias > 1 ? "s" : "");
         }
@@ -173,66 +176,79 @@
             }
         }
 
-        // Função que procura novas atualizações
+        // MOTOR NOVO: Lê o XML diretamente, contornando o cache de 1 hora do conversor antigo!
         async function fetchContent(isBackground = false) {
             if(isFetching) return;
             isFetching = true;
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                // FURA-CACHE ABSOLUTO: Garante que pedimos sempre ao milissegundo a versão mais atual
                 const tempoExato = new Date().getTime();
-                const urlFuraCache = `${BASE_FEED_URL}?forcar=${tempoExato}`;
-                const jsonApiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(urlFuraCache)}&api_key=`;
+                // Fura-cache no link
+                const urlLimpa = `${BASE_FEED_URL}?t=${tempoExato}`;
+                // Proxy direto para XML cru, sem atrasos
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(urlLimpa)}`;
                 
-                const res = await fetch(jsonApiUrl, { cache: "no-store" });
-                const data = await res.json();
+                const res = await fetch(proxyUrl, { cache: "no-store" });
+                const xmlText = await res.text();
                 
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_v5') || '[]');
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                const items = xmlDoc.querySelectorAll("item");
+                
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_final') || '[]');
                 let novosEncontrados = false;
                 
-                if(data.status === "ok" && data.items && data.items.length > 0) {
-                    data.items.forEach(newItem => {
-                        if (!cachedData.some(oldItem => oldItem.guid === newItem.guid)) {
-                            cachedData.push(newItem);
-                            novosEncontrados = true;
-                        }
-                    });
+                items.forEach(item => {
+                    const guid = item.querySelector("guid")?.textContent || item.querySelector("link")?.textContent;
+                    const title = item.querySelector("title")?.textContent;
+                    const link = item.querySelector("link")?.textContent;
+                    const pubDate = item.querySelector("pubDate")?.textContent;
                     
-                    // Ordena sempre pela data de publicação (mais recente em cima)
-                    cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                    localStorage.setItem('historias_cache_v5', JSON.stringify(cachedData));
-                }
+                    let thumbnail = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500";
+                    const media = item.getElementsByTagNameNS("*", "content");
+                    if(media.length > 0 && media[0].getAttribute("url")) {
+                        thumbnail = media[0].getAttribute("url");
+                    } else if(item.querySelector("enclosure") && item.querySelector("enclosure").getAttribute("url")) {
+                        thumbnail = item.querySelector("enclosure").getAttribute("url");
+                    }
+
+                    if (!cachedData.some(oldItem => oldItem.guid === guid)) {
+                        cachedData.push({ guid, title, link, pubDate, thumbnail });
+                        novosEncontrados = true;
+                    }
+                });
+                
+                cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+                localStorage.setItem('historias_cache_final', JSON.stringify(cachedData));
                 
                 allItems = cachedData;
 
                 if(!isBackground) {
                     if(allItems.length > 0) {
-                        document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
+                        document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems(); 
                     } else {
                         document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma história encontrada.</div>";
-                        document.getElementById('loader').style.opacity = '0';
                     }
+                    document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
-                    // Se estivermos em fundo e encontrarmos um vídeo novo, atualiza a grelha sem estragar o que a pessoa está a ver
-                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
+                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
                     const feed = document.getElementById('feed');
                     feed.innerHTML = '';
                     let itemsAnteriores = displayedItems;
                     displayedItems = 0;
-                    
-                    // Recarrega a quantidade de itens que a pessoa já tinha carregado
                     const batch = allItems.slice(0, itemsAnteriores);
                     batch.forEach(item => desenharCartao(item, feed));
                     displayedItems = itemsAnteriores;
                 }
 
             } catch (e) { 
+                console.error(e);
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_v5') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_final') || '[]');
                     if(allItems.length > 0) {
                         document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
                         displayedItems = 0;
@@ -252,10 +268,9 @@
             card.className = 'movie-card';
             card.onclick = () => openModal(item);
             
-            const imgUrl = item.thumbnail || item.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+            const imgUrl = item.thumbnail || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
             const tempoStr = calcularTempoPassado(item.pubDate);
             
-            // Adicionamos a etiqueta visual de tempo
             card.innerHTML = `
                 <img class="movie-poster" src="${imgUrl}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'">
                 <div class="movie-rating"><i class="fas fa-play" style="color: #1877F2;"></i></div>
@@ -283,7 +298,7 @@
             }
         }
 
-        // Atualiza as etiquetas de tempo a cada 60 segundos na tela
+        // Atualiza a etiqueta de tempo visual no site a cada 1 minuto
         setInterval(() => {
             if(!isSavedView && displayedItems > 0) {
                 const feed = document.getElementById('feed');
@@ -295,10 +310,8 @@
             }
         }, 60000);
 
-        // O RASTREADOR INVISÍVEL: Vai ao Facebook a cada minuto ver se há novidades
-        setInterval(() => {
-            fetchContent(true);
-        }, 60000); 
+        // O RASTREADOR: Procura em segundo plano vídeos novos a cada minuto
+        setInterval(() => { fetchContent(true); }, 60000); 
 
         function openModal(item) {
             selectedItem = item;
@@ -326,19 +339,11 @@
             
             if(otherItems.length > 0) {
                 otherItems.forEach(rel => {
-                    const imgUrl = rel.thumbnail || rel.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                     let relTitle = rel.title ? rel.title.split('#')[0].trim() : "Ver mais";
-                    
                     const div = document.createElement('div');
                     div.className = 'related-item';
-                    div.onclick = () => {
-                        openModal(rel); 
-                        document.querySelector('.modal-content').scrollTop = 0; 
-                    };
-                    div.innerHTML = `
-                        <img src="${imgUrl}">
-                        <div class="related-item-title">${relTitle}</div>
-                    `;
+                    div.onclick = () => { openModal(rel); document.querySelector('.modal-content').scrollTop = 0; };
+                    div.innerHTML = `<img src="${rel.thumbnail}"><div class="related-item-title">${relTitle}</div>`;
                     relatedContainer.appendChild(div);
                 });
                 document.getElementById('related-section').style.display = 'block';
@@ -394,16 +399,17 @@
                 const saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
                 document.getElementById('feed-count-label').style.display = 'none';
                 document.querySelector('.feed-header span:first-child').innerHTML = '<i class="fas fa-bookmark" style="color: var(--text);"></i> Minha Lista';
+                document.querySelector('.refresh-btn').style.display = 'none';
                 document.getElementById('loader').style.opacity = '0';
                 
                 feed.innerHTML = '';
                 if(saved.length === 0) feed.innerHTML = "<div class='no-results'>Nenhuma história guardada.</div>";
-                
                 saved.forEach(item => desenharCartao(item, feed));
             } else {
                 btn.classList.remove('active');
                 document.getElementById('feed-count-label').style.display = 'block';
                 document.querySelector('.feed-header span:first-child').innerHTML = '<i class="fas fa-fire" style="color: #e50914;"></i> Últimas Histórias';
+                document.querySelector('.refresh-btn').style.display = 'inline-block';
                 
                 displayedItems = 0;
                 feed.innerHTML = '';
