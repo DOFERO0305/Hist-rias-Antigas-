@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Histórias Virais | IA & Contos Antigos</title>
+    
+    <meta property="og:title" content="Histórias Virais | IA & Contos Antigos">
+    <meta property="og:description" content="Assiste às melhores histórias geradas por IA e contos antigos diretamente do Facebook.">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Variáveis de Cor - Ajustadas para um tom mais místico/azul Facebook */
+        :root { 
+            --primary: #1877F2; 
+            --bg: #141414; 
+            --surface: #2f2f2f; 
+            --text: #ffffff; 
+            --text-meta: #aaaaaa; 
+            --radius-md: 8px; 
+            --border: #333; 
+        }
+        body.light-mode { 
+            --bg: #f8fafc; 
+            --surface: #ffffff; 
+            --text: #0f172a; 
+            --text-meta: #64748b; 
+            --border: #e2e8f0; 
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            overflow-x: hidden; 
+            scroll-behavior: smooth; 
+            transition: background 0.3s, color 0.3s; 
+        }
+        
+        /* Navbar */
+        .navbar { position: sticky; top: 0; background: var(--bg); opacity: 0.98; z-index: 100; padding: 15px 20px; border-bottom: 1px solid var(--border); transition: 0.3s; }
+        .nav-top { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .menu-btn { background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; transition: 0.3s; }
+        .logo-container { display: flex; align-items: center; cursor: pointer; gap: 15px; }
+        .logo { font-weight: 800; font-size: 1.5rem; color: var(--text); text-decoration: none; letter-spacing: -1px; }
+        .logo span { color: var(--primary); }
+
+        /* Sidebar */
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; opacity: 0; transition: 0.3s; }
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--bg); z-index: 2001; transition: 0.3s ease-in-out; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.2); border-right: 1px solid var(--border); }
+        .sidebar.open { left: 0; }
+        .sidebar-close { align-self: flex-end; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; margin-bottom: 10px; }
+        .sidebar h3 { color: var(--text-meta); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 20px; }
+        
+        .side-cat { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); padding: 12px 10px; font-size: 1rem; cursor: pointer; transition: 0.2s; border-radius: 8px; margin-bottom: 5px; }
+        .side-cat:hover, .side-cat.active { background: var(--surface); color: var(--primary); }
+        .sidebar-footer { margin-top: auto; font-size: 0.85rem; color: var(--text-meta); text-align: left; border-top: 1px solid var(--border); padding-top: 15px; line-height: 1.8; }
+        .sidebar-footer i { width: 20px; color: var(--primary); }
+
+        /* Feed */
+        .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
+        .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; min-height: 400px; }
+        @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
+        
+        .movie-card { background: var(--surface); border-radius: var(--radius-md); overflow: hidden; cursor: pointer; transition: transform 0.2s; position: relative; aspect-ratio: 2/3; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .movie-card:hover { transform: scale(1.05); }
+        .movie-poster { width: 100%; height: 100%; object-fit: cover; }
+        .movie-rating { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .no-results { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-meta); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
+        .modal-content { background: var(--bg); max-width: 600px; width: 100%; border-radius: 16px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 95vh; overflow-y: auto; border: 1px solid var(--border); }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; }
+        
+        .modal-info { padding: 25px; margin-top: 20px; }
+        .modal-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; color: var(--text); }
+        .modal-overview { font-size: 1rem; line-height: 1.5; margin-bottom: 20px; color: var(--text-meta); }
+        
+        .trailer-container { position: relative; width: 100%; display: flex; justify-content: center; background: #000; border-radius: var(--radius-md); overflow: hidden; padding-top: 15px; padding-bottom: 15px; margin-bottom: 20px; min-height: 400px;}
+        .trailer-container iframe { max-width: 100%; border: none; border-radius: 8px;}
+        
+        .action-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; background: rgba(128,128,128,0.1); padding: 15px; border-radius: var(--radius-md); }
+        .btn-action { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; min-width: 130px; text-decoration: none; }
+        .btn-watch { background: var(--primary); color: white; }
+        .btn-icon { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+        /* Floating elements */
+        .whatsapp-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
+        .whatsapp-float { background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
+        .loader { text-align: center; padding: 20px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; opacity: 0; transition: 0.3s; min-height: 80px; }
+        
+        #google_translate_element select { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 5px; border-radius: 5px; outline: none; margin-bottom: 15px;}
+        .goog-te-banner-frame { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        
+        <h3><i class="fas fa-language"></i> Traduzir Site</h3>
+        <div id="google_translate_element"></div>
+
+        <h3><i class="fas fa-bars"></i> Menu</h3>
+        <button class="side-cat active" onclick="toggleSidebar()"><i class="fas fa-home"></i> Início</button>
+        <button id="sidebar-bookmark-btn" class="side-cat" onclick="toggleSavedView()"><i class="fas fa-bookmark"></i> Favoritos</button>
+
+        <div class="sidebar-footer">
+            <strong>Histórias Virais</strong> &copy; 2026<br>
+            Criado Por Donaldo F. Rodrigues<br><br>
+            <a href="mailto:donald.fer.fer@gmail.com" style="color: var(--text-meta); text-decoration: none;"><i class="fas fa-envelope"></i> donald.fer.fer@gmail.com</a><br>
+            <a href="https://wa.me/258849085157" style="color: var(--text-meta); text-decoration: none;" target="_blank"><i class="fas fa-phone"></i> +258 84 908 5157</a>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-top">
+            <div class="logo-container">
+                <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <div class="logo" onclick="window.location.reload()">Histórias<span>Virais</span></div>
+            </div>
+            <button class="menu-btn" onclick="toggleTheme()" title="Mudar Tema"><i id="theme-icon" class="fas fa-sun"></i></button>
+        </div>
+    </nav>
+
+    <div class="feed-header">
+        <i class="fas fa-fire" style="color: #e50914;"></i> Últimas Histórias
+    </div>
+
+    <main class="feed" id="feed"></main>
+    <div id="loader" class="loader"><i class="fas fa-spinner fa-spin"></i></div>
+
+    <div class="modal-overlay" id="modal" onclick="closeModal(event)">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal(event, true)"><i class="fas fa-times"></i></button>
+            <div class="modal-info">
+                
+                <div class="trailer-container" id="m-trailer"></div>
+                
+                <h2 id="m-title" class="modal-title">Título</h2>
+                <p id="m-desc" class="modal-overview">A carregar descrição...</p>
+
+                <div class="action-row">
+                    <a id="m-watch-btn" href="#" target="_blank" class="btn-action btn-watch"><i class="fab fa-facebook"></i> Abrir no FB</a>
+                    <button class="btn-action btn-icon" onclick="partilharConteudo()" title="Partilhar"><i class="fas fa-share-alt"></i></button>
+                    <button id="m-save-btn" class="btn-action btn-icon" onclick="toggleSave()" title="Guardar"><i class="far fa-bookmark"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="whatsapp-container">
+        <a href="https://wa.me/258849085157" class="whatsapp-float" target="_blank">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
+
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'pt', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <script>
+        // Usamos a API gratuita rss2json para converter o teu feed XML do rss.app para JSON facilmente
+        const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
+        const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
+
+        let allItems = [];
+        let selectedItem = null;
+        let isSavedView = false;
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const icon = document.getElementById('theme-icon');
+            icon.className = document.body.classList.contains('light-mode') ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300);
+            } else {
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+                sidebar.classList.add('open');
+            }
+        }
+
+        async function fetchContent() {
+            document.getElementById('loader').style.opacity = '1';
+            try {
+                const res = await fetch(JSON_API_URL);
+                const data = await res.json();
+                
+                if(data.status === "ok" && data.items.length > 0) {
+                    allItems = data.items;
+                    renderGrid(allItems);
+                } else {
+                    document.getElementById('feed').innerHTML = `
+                        <div class="no-results">
+                            <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom:15px;"></i>
+                            <h2>Nenhuma história encontrada.</h2>
+                            <p>Tenta atualizar a página mais tarde.</p>
+                        </div>`;
+                }
+            } catch (e) { 
+                console.error("Erro ao carregar o feed:", e); 
+                document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Tenta novamente.</div>";
+            }
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        function renderGrid(items) {
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '';
+            
+            if(items.length === 0) {
+                 feed.innerHTML = "<div class='no-results'>Nenhuma história gravada nos favoritos.</div>";
+                 return;
+            }
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.onclick = () => openModal(item);
+                
+                // Tenta puxar a imagem da miniatura do feed. Se não existir, usa uma imagem padrão.
+                const imgUrl = item.thumbnail || item.enclosure.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                
+                card.innerHTML = `
+                    <img class="movie-poster" src="${imgUrl}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'">
+                    <div class="movie-rating"><i class="fab fa-facebook" style="color: #1877F2;"></i> Ver</div>
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        function openModal(item) {
+            selectedItem = item;
+            
+            // Limpa o título do lixo que o RSS às vezes traz (como links no meio do texto)
+            let rawTitle = item.title || "História Gerada";
+            rawTitle = rawTitle.length > 80 ? rawTitle.substring(0, 80) + "..." : rawTitle;
+            
+            document.getElementById('m-title').innerText = rawTitle;
+            
+            // Formata a descrição retirando as tags HTML que vêm no feed
+            let tempDiv = document.createElement("div");
+            tempDiv.innerHTML = item.description || "";
+            document.getElementById('m-desc').innerText = tempDiv.textContent || tempDiv.innerText || "Assiste ao vídeo para descobrir a história.";
+            
+            const watchBtn = document.getElementById('m-watch-btn');
+            watchBtn.href = item.link; 
+
+            // Integrar o Reel do Facebook
+            const fbUrlCodificado = encodeURIComponent(item.link);
+            document.getElementById('m-trailer').innerHTML = `
+                <iframe src="https://www.facebook.com/plugins/video.php?href=${fbUrlCodificado}&show_text=false&width=350" width="350" height="600" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+            `;
+
+            updateActionBtns();
+            document.getElementById('modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(event, force = false) {
+            if (force || event.target.id === 'modal') {
+                document.getElementById('modal').style.display = 'none';
+                document.body.style.overflow = 'auto';
+                document.getElementById('m-trailer').innerHTML = ''; // Corta o áudio quando fecha
+            }
+        }
+
+        function partilharConteudo() {
+            if (navigator.share) { 
+                navigator.share({ title: `Vê esta história!`, url: selectedItem.link }).catch(console.error); 
+            } else {
+                prompt("Copia este link para partilhar:", selectedItem.link);
+            }
+        }
+
+        function toggleSave() {
+            let saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
+            const idx = saved.findIndex(x => x.guid === selectedItem.guid);
+            
+            if(idx > -1) {
+                saved.splice(idx, 1); 
+            } else {
+                saved.push(selectedItem);
+            }
+            
+            localStorage.setItem('historias_salvas', JSON.stringify(saved));
+            updateActionBtns();
+            
+            // Se estiver na view de favoritos, atualiza a grelha em tempo real
+            if(isSavedView) renderGrid(saved);
+        }
+
+        function toggleSavedView() {
+            toggleSidebar();
+            isSavedView = !isSavedView;
+            const btn = document.getElementById('sidebar-bookmark-btn');
+            
+            if(isSavedView) {
+                btn.classList.add('active');
+                const saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
+                document.querySelector('.feed-header').innerHTML = '<i class="fas fa-bookmark" style="color: var(--text);"></i> Minhas Histórias Salvas';
+                renderGrid(saved);
+            } else {
+                btn.classList.remove('active');
+                document.querySelector('.feed-header').innerHTML = '<i class="fas fa-fire" style="color: #e50914;"></i> Últimas Histórias';
+                renderGrid(allItems);
+            }
+        }
+
+        function updateActionBtns() {
+            const saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
+            const isSaved = saved.some(x => x.guid === selectedItem.guid);
+            const saveBtn = document.getElementById('m-save-btn');
+            
+            if(isSaved) { 
+                saveBtn.style.color = '#1877F2'; 
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Guardado'; 
+            } else { 
+                saveBtn.style.color = 'var(--text)'; 
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Guardar'; 
+            }
+        }
+
+        // Arranca o carregamento inicial
+        window.onload = () => { fetchContent(); };
+    </script>
+
+    <script data-cfasync="false" type="text/javascript" id="clever-core">
+    /* <![CDATA[ */
+        (function (document, window) {
+            var a, c = document.createElement("script"), f = window.frameElement;
+
+            c.id = "CleverCoreLoader101444";
+            c.src = "https://scripts.cleverwebserver.com/532b25ff0fd3ba268c101f0840b2b10a.js";
+
+            c.async = !0;
+            c.type = "text/javascript";
+            c.setAttribute("data-target", window.name || (f && f.getAttribute("id")));
+            c.setAttribute("data-callback", "put-your-callback-function-here");
+            c.setAttribute("data-callback-url-click", "put-your-click-macro-here");
+            c.setAttribute("data-callback-url-view", "put-your-view-macro-here");
+
+            try {
+                a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0];
+            } catch (e) {
+                a = !1;
+            }
+
+            a || (a = document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]);
+            a.parentNode.insertBefore(c, a);
+        })(document, window);
+    /* ]]> */
+    </script>
+</body>
+</html>
