@@ -32,8 +32,7 @@
         .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         .feed-count { font-size: 0.9rem; color: var(--text-meta); font-weight: normal; }
         .refresh-btn { background: none; border: none; color: var(--primary); font-size: 1.2rem; cursor: pointer; transition: 0.2s; padding: 5px; margin-left: 10px; }
-        .refresh-btn:hover { transform: rotate(180deg); }
-        .refresh-btn:active { transform: scale(0.8); }
+        .refresh-btn:active { transform: rotate(180deg) scale(0.8); }
 
         .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
         @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
@@ -97,7 +96,7 @@
     <div class="feed-header">
         <div style="display: flex; align-items: center;">
             <i class="fas fa-fire" style="color: #e50914; margin-right: 8px;"></i> Histórias
-            <button class="refresh-btn" onclick="fetchContent()" title="Procurar novos vídeos agora!"><i class="fas fa-sync-alt"></i></button>
+            <button class="refresh-btn" onclick="fetchContent()" title="Procurar novos vídeos"><i class="fas fa-sync-alt"></i></button>
         </div>
         <span class="feed-count" id="feed-count-label">A carregar...</span>
     </div>
@@ -127,7 +126,9 @@
     </div>
 
     <script>
-        const BASE_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
+        // MOTOR ESTÁVEL RESTAURADO - Sem furar limites de segurança
+        const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
+        const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
         
         let allItems = [];
         let displayedItems = 0;
@@ -137,7 +138,6 @@
         let currentIndex = 0;
         let isFetching = false;
 
-        // Calculadora de tempo real
         function calcularTempoPassado(dataPublicacao) {
             if(!dataPublicacao) return "Novo";
             const data = new Date(dataPublicacao.replace(/-/g, "/")); 
@@ -176,51 +176,30 @@
             }
         }
 
-        // MOTOR NOVO: Lê o XML diretamente, contornando o cache de 1 hora do conversor antigo!
         async function fetchContent(isBackground = false) {
             if(isFetching) return;
             isFetching = true;
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                const tempoExato = new Date().getTime();
-                // Fura-cache no link
-                const urlLimpa = `${BASE_FEED_URL}?t=${tempoExato}`;
-                // Proxy direto para XML cru, sem atrasos
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(urlLimpa)}`;
+                // Pedido direto e seguro à API
+                const res = await fetch(JSON_API_URL);
+                const data = await res.json();
                 
-                const res = await fetch(proxyUrl, { cache: "no-store" });
-                const xmlText = await res.text();
-                
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-                const items = xmlDoc.querySelectorAll("item");
-                
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_final') || '[]');
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_v6') || '[]');
                 let novosEncontrados = false;
                 
-                items.forEach(item => {
-                    const guid = item.querySelector("guid")?.textContent || item.querySelector("link")?.textContent;
-                    const title = item.querySelector("title")?.textContent;
-                    const link = item.querySelector("link")?.textContent;
-                    const pubDate = item.querySelector("pubDate")?.textContent;
+                if(data.status === "ok" && data.items && data.items.length > 0) {
+                    data.items.forEach(newItem => {
+                        if (!cachedData.some(oldItem => oldItem.guid === newItem.guid)) {
+                            cachedData.push(newItem);
+                            novosEncontrados = true;
+                        }
+                    });
                     
-                    let thumbnail = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500";
-                    const media = item.getElementsByTagNameNS("*", "content");
-                    if(media.length > 0 && media[0].getAttribute("url")) {
-                        thumbnail = media[0].getAttribute("url");
-                    } else if(item.querySelector("enclosure") && item.querySelector("enclosure").getAttribute("url")) {
-                        thumbnail = item.querySelector("enclosure").getAttribute("url");
-                    }
-
-                    if (!cachedData.some(oldItem => oldItem.guid === guid)) {
-                        cachedData.push({ guid, title, link, pubDate, thumbnail });
-                        novosEncontrados = true;
-                    }
-                });
-                
-                cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                localStorage.setItem('historias_cache_final', JSON.stringify(cachedData));
+                    cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+                    localStorage.setItem('historias_cache_v6', JSON.stringify(cachedData));
+                }
                 
                 allItems = cachedData;
 
@@ -246,29 +225,38 @@
                 }
 
             } catch (e) { 
-                console.error(e);
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_final') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_v6') || '[]');
                     if(allItems.length > 0) {
                         document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems();
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Tenta recarregar.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica em atualizar.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 }
             }
+            
+            // Faz o ícone parar de girar se foi clicado manualmente
+            const btnIcon = document.querySelector('.refresh-btn i');
+            if(btnIcon) btnIcon.classList.remove('fa-spin');
+            
             isFetching = false;
         }
+
+        // Se o utilizador clicar em atualizar, roda o ícone
+        document.querySelector('.refresh-btn').addEventListener('click', function() {
+            this.querySelector('i').classList.add('fa-spin');
+        });
 
         function desenharCartao(item, contentor) {
             const card = document.createElement('div');
             card.className = 'movie-card';
             card.onclick = () => openModal(item);
             
-            const imgUrl = item.thumbnail || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+            const imgUrl = item.thumbnail || item.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
             const tempoStr = calcularTempoPassado(item.pubDate);
             
             card.innerHTML = `
@@ -298,20 +286,8 @@
             }
         }
 
-        // Atualiza a etiqueta de tempo visual no site a cada 1 minuto
-        setInterval(() => {
-            if(!isSavedView && displayedItems > 0) {
-                const feed = document.getElementById('feed');
-                feed.innerHTML = '';
-                let limite = displayedItems;
-                displayedItems = 0;
-                allItems.slice(0, limite).forEach(item => desenharCartao(item, feed));
-                displayedItems = limite;
-            }
-        }, 60000);
-
-        // O RASTREADOR: Procura em segundo plano vídeos novos a cada minuto
-        setInterval(() => { fetchContent(true); }, 60000); 
+        // O RASTREADOR: Seguro. Procura em segundo plano vídeos novos a cada 5 minutos
+        setInterval(() => { fetchContent(true); }, 300000); 
 
         function openModal(item) {
             selectedItem = item;
@@ -340,10 +316,11 @@
             if(otherItems.length > 0) {
                 otherItems.forEach(rel => {
                     let relTitle = rel.title ? rel.title.split('#')[0].trim() : "Ver mais";
+                    const imgUrl = rel.thumbnail || rel.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                     const div = document.createElement('div');
                     div.className = 'related-item';
                     div.onclick = () => { openModal(rel); document.querySelector('.modal-content').scrollTop = 0; };
-                    div.innerHTML = `<img src="${rel.thumbnail}"><div class="related-item-title">${relTitle}</div>`;
+                    div.innerHTML = `<img src="${imgUrl}"><div class="related-item-title">${relTitle}</div>`;
                     relatedContainer.appendChild(div);
                 });
                 document.getElementById('related-section').style.display = 'block';
