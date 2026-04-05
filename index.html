@@ -56,7 +56,7 @@
         /* Feed */
         .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         .feed-count { font-size: 0.9rem; color: var(--text-meta); font-weight: normal; }
-        .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; min-height: 400px; }
+        .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
         @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
         
         .movie-card { background: var(--surface); border-radius: var(--radius-md); overflow: hidden; cursor: pointer; transition: transform 0.2s; position: relative; aspect-ratio: 2/3; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -92,7 +92,7 @@
         .related-item img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
         .related-item-title { position: absolute; bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: white; width: 100%; font-size: 0.75rem; padding: 20px 5px 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 
-        .loader { text-align: center; padding: 20px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; opacity: 0; transition: 0.3s; min-height: 80px; }
+        .loader { text-align: center; padding: 20px; color: var(--primary); font-size: 2rem; width: 100%; opacity: 0; transition: 0.3s; min-height: 80px; }
     </style>
 </head>
 <body>
@@ -118,7 +118,7 @@
 
     <div class="feed-header">
         <span><i class="fas fa-fire" style="color: #e50914;"></i> Histórias</span>
-        <span class="feed-count" id="feed-count-label">A carregar...</span>
+        <span class="feed-count" id="feed-count-label">...</span>
     </div>
 
     <main class="feed" id="feed"></main>
@@ -130,7 +130,6 @@
             <div class="modal-info">
                 
                 <div class="trailer-container" id="m-trailer"></div>
-                
                 <h2 id="m-title" class="modal-title">Título</h2>
 
                 <div class="action-row">
@@ -149,18 +148,26 @@
 
     <script>
         const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
-        // REMOVIDO o &count=50 que estava a causar o erro no site.
         const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
 
         let allItems = [];
+        let displayedItems = 0; // Quantas já foram carregadas no ecrã
+        const ITEMS_PER_PAGE = 6; // Carrega 6 de cada vez quando rolar para baixo
         let selectedItem = null;
         let isSavedView = false;
         let currentIndex = 0;
+        let isFetching = false;
+
+        // O Observador Mágico (Lazy Loading) - Deteta quando chegas ao fundo da página
+        const observer = new IntersectionObserver(e => { 
+            if(e[0].isIntersecting) {
+                loadMoreItems();
+            } 
+        }, { rootMargin: "100px" });
 
         function toggleTheme() {
             document.body.classList.toggle('light-mode');
-            const icon = document.getElementById('theme-icon');
-            icon.className = document.body.classList.contains('light-mode') ? 'fas fa-moon' : 'fas fa-sun';
+            document.getElementById('theme-icon').className = document.body.classList.contains('light-mode') ? 'fas fa-moon' : 'fas fa-sun';
         }
 
         function toggleSidebar() {
@@ -178,59 +185,70 @@
         }
 
         async function fetchContent() {
+            if(isFetching) return;
+            isFetching = true;
             document.getElementById('loader').style.opacity = '1';
+
             try {
                 const res = await fetch(JSON_API_URL);
                 const data = await res.json();
                 
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_v3') || '[]');
+                
                 if(data.status === "ok" && data.items && data.items.length > 0) {
-                    
-                    // SISTEMA DE MEMÓRIA (Atualizado para v2 para limpar dados corrompidos)
-                    let cachedData = JSON.parse(localStorage.getItem('historias_cache_v2') || '[]');
-                    
                     data.items.forEach(newItem => {
                         if (!cachedData.some(oldItem => oldItem.guid === newItem.guid)) {
                             cachedData.push(newItem);
                         }
                     });
-
+                    // Ordena das mais recentes para as mais antigas
                     cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                    localStorage.setItem('historias_cache_v2', JSON.stringify(cachedData));
-                    
-                    allItems = cachedData;
-                    renderGrid(allItems);
-                    
-                } else {
-                    throw new Error("O link do RSS não enviou histórias novas.");
+                    localStorage.setItem('historias_cache_v3', JSON.stringify(cachedData));
                 }
+                
+                allItems = cachedData;
+
+                if(allItems.length > 0) {
+                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
+                    displayedItems = 0;
+                    document.getElementById('feed').innerHTML = '';
+                    loadMoreItems(); // Inicia o carregamento em blocos
+                } else {
+                    document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma história encontrada. Verifica o link do RSS.</div>";
+                    document.getElementById('loader').style.display = 'none';
+                }
+
             } catch (e) { 
                 console.error(e);
-                // Tenta carregar as antigas da memória se a internet/link falhar
-                allItems = JSON.parse(localStorage.getItem('historias_cache_v2') || '[]');
+                allItems = JSON.parse(localStorage.getItem('historias_cache_v3') || '[]');
                 if(allItems.length > 0) {
-                    renderGrid(allItems);
+                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
+                    displayedItems = 0;
+                    document.getElementById('feed').innerHTML = '';
+                    loadMoreItems();
                 } else {
-                    document.getElementById('feed').innerHTML = `
-                    <div class='no-results'>
-                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px; color: var(--primary);"></i>
-                        <h2>Nenhuma história encontrada.</h2>
-                        <p style="font-size: 0.9rem; margin-top: 10px;">Verifica se o link do RSS.app ainda está ativo ou se a tua conta gratuita expirou.</p>
-                    </div>`;
-                    document.getElementById('feed-count-label').innerText = "Erro";
+                    document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação.</div>";
+                    document.getElementById('loader').style.display = 'none';
                 }
             }
-            document.getElementById('loader').style.display = 'none';
+            isFetching = false;
         }
 
-        function renderGrid(items) {
-            const feed = document.getElementById('feed');
-            feed.innerHTML = '';
+        // Função que carrega blocos de vídeos ao rolar para baixo
+        function loadMoreItems() {
+            if (isSavedView) return; // Se estiver nos favoritos, não precisa rolar para carregar
             
-            document.getElementById('feed-count-label').innerText = `${items.length} vídeos no arquivo`;
+            if (displayedItems >= allItems.length) {
+                document.getElementById('loader').style.opacity = '0'; 
+                return; // Já mostrou tudo o que tem na memória
+            }
 
-            if(items.length === 0) return;
-
-            items.forEach(item => {
+            document.getElementById('loader').style.opacity = '1';
+            
+            const nextBatch = allItems.slice(displayedItems, displayedItems + ITEMS_PER_PAGE);
+            const feed = document.getElementById('feed');
+            
+            nextBatch.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.onclick = () => openModal(item);
@@ -243,11 +261,20 @@
                 `;
                 feed.appendChild(card);
             });
+
+            displayedItems += ITEMS_PER_PAGE;
+            
+            // Esconde o loader se chegou ao fim do arquivo
+            if (displayedItems >= allItems.length) {
+                document.getElementById('loader').style.opacity = '0';
+            }
         }
 
         function openModal(item) {
             selectedItem = item;
-            currentIndex = allItems.findIndex(x => x.guid === item.guid);
+            // Descobre o array correto baseado na vista atual (Favoritos ou Todos)
+            let currentList = isSavedView ? JSON.parse(localStorage.getItem('historias_salvas') || '[]') : allItems;
+            currentIndex = currentList.findIndex(x => x.guid === item.guid);
             
             let rawTitle = item.title || "História";
             rawTitle = rawTitle.split('#')[0].trim(); 
@@ -258,12 +285,12 @@
                 <iframe src="https://www.facebook.com/plugins/video.php?href=${fbUrlCodificado}&show_text=false&width=350" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
             `;
 
-            document.getElementById('m-next-btn').onclick = () => playNext();
+            document.getElementById('m-next-btn').onclick = () => playNext(currentList);
 
             const relatedContainer = document.getElementById('m-related-grid');
             relatedContainer.innerHTML = '';
             
-            const otherItems = allItems.filter(x => x.guid !== item.guid).slice(0, 6);
+            const otherItems = currentList.filter(x => x.guid !== item.guid).slice(0, 6);
             
             if(otherItems.length > 0) {
                 otherItems.forEach(rel => {
@@ -273,7 +300,6 @@
                     const div = document.createElement('div');
                     div.className = 'related-item';
                     div.onclick = () => {
-                        // IMPORTANTE: Atualiza o modal internamente sem ir para o Facebook!
                         openModal(rel); 
                         document.querySelector('.modal-content').scrollTop = 0; 
                     };
@@ -293,10 +319,10 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function playNext() {
+        function playNext(list) {
             currentIndex++;
-            if (currentIndex >= allItems.length) { currentIndex = 0; }
-            openModal(allItems[currentIndex]);
+            if (currentIndex >= list.length) { currentIndex = 0; }
+            openModal(list[currentIndex]);
             document.querySelector('.modal-content').scrollTop = 0;
         }
 
@@ -317,25 +343,55 @@
             
             localStorage.setItem('historias_salvas', JSON.stringify(saved));
             updateActionBtns();
-            if(isSavedView) renderGrid(saved);
+            
+            // Atualiza o feed de favoritos se estiver lá
+            if(isSavedView) {
+                const feed = document.getElementById('feed');
+                feed.innerHTML = '';
+                saved.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.onclick = () => openModal(item);
+                    const imgUrl = item.thumbnail || item.enclosure?.link || '';
+                    card.innerHTML = `<img class="movie-poster" src="${imgUrl}"><div class="movie-rating"><i class="fas fa-play" style="color: #1877F2;"></i> Play</div>`;
+                    feed.appendChild(card);
+                });
+            }
         }
 
         function toggleSavedView() {
             toggleSidebar();
             isSavedView = !isSavedView;
             const btn = document.getElementById('sidebar-bookmark-btn');
+            const feed = document.getElementById('feed');
             
             if(isSavedView) {
                 btn.classList.add('active');
                 const saved = JSON.parse(localStorage.getItem('historias_salvas') || '[]');
                 document.getElementById('feed-count-label').style.display = 'none';
                 document.querySelector('.feed-header span:first-child').innerHTML = '<i class="fas fa-bookmark" style="color: var(--text);"></i> Minha Lista';
-                renderGrid(saved);
+                document.getElementById('loader').style.display = 'none';
+                
+                feed.innerHTML = '';
+                if(saved.length === 0) feed.innerHTML = "<div class='no-results'>Nenhuma história guardada.</div>";
+                
+                saved.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.onclick = () => openModal(item);
+                    const imgUrl = item.thumbnail || item.enclosure?.link || '';
+                    card.innerHTML = `<img class="movie-poster" src="${imgUrl}"><div class="movie-rating"><i class="fas fa-play" style="color: #1877F2;"></i> Play</div>`;
+                    feed.appendChild(card);
+                });
             } else {
                 btn.classList.remove('active');
                 document.getElementById('feed-count-label').style.display = 'block';
                 document.querySelector('.feed-header span:first-child').innerHTML = '<i class="fas fa-fire" style="color: #e50914;"></i> Histórias';
-                renderGrid(allItems);
+                
+                // Reinicia a grelha normal
+                displayedItems = 0;
+                feed.innerHTML = '';
+                loadMoreItems();
             }
         }
 
@@ -346,14 +402,18 @@
             
             if(isSaved) { 
                 saveBtn.style.color = '#1877F2'; 
-                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i>'; 
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Guardado'; 
             } else { 
                 saveBtn.style.color = 'var(--text)'; 
-                saveBtn.innerHTML = '<i class="far fa-bookmark"></i>'; 
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Guardar'; 
             }
         }
 
-        window.onload = () => { fetchContent(); };
+        // Inicia o observer e puxa os dados ao carregar a página
+        window.onload = () => { 
+            observer.observe(document.getElementById('loader'));
+            fetchContent(); 
+        };
     </script>
 
     <script data-cfasync="false" type="text/javascript" id="clever-core">
