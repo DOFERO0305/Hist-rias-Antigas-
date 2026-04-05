@@ -115,8 +115,9 @@
     </div>
 
     <script>
-        // O link exato que estava a funcionar no teu print
-        const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
+        // O SISTEMA DE FURA-CACHE INSTALADO AQUI:
+        const tempoExato = new Date().getTime(); 
+        const XML_FEED_URL = `https://rss.app/feeds/lJ20CqMSrPIexFe7.xml?forcar=${tempoExato}`;
         const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
 
         let allItems = [];
@@ -127,7 +128,6 @@
         let currentIndex = 0;
         let isFetching = false;
 
-        // Função de scroll infinito (só aparece o botão a carregar quando chegas ao fim)
         const observer = new IntersectionObserver(e => { 
             if(e[0].isIntersecting) {
                 loadMoreItems();
@@ -159,10 +159,10 @@
             document.getElementById('loader').style.opacity = '1';
 
             try {
-                const res = await fetch(JSON_API_URL);
+                // Adicionamos também um cabeçalho para dizer ao navegador para não usar a versão memorizada
+                const res = await fetch(JSON_API_URL, { cache: "no-store" });
                 const data = await res.json();
                 
-                // NOME NOVO PARA O CACHE: Para limpar os meus dados falsos anteriores!
                 let cachedData = JSON.parse(localStorage.getItem('historias_cache_oficial') || '[]');
                 
                 if(data.status === "ok" && data.items && data.items.length > 0) {
@@ -221,7 +221,6 @@
                 card.className = 'movie-card';
                 card.onclick = () => openModal(item);
                 
-                // Pega a imagem da miniatura correta
                 const imgUrl = item.thumbnail || item.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                 
                 card.innerHTML = `
