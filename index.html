@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        // O TEU NOVO FEED DIRETO (Sem intermediários!)
+        // LINK DAS NOVELAS JSON ATUALIZADO
         const JSON_FEED_URL = 'https://rss.app/feeds/v1.1/pLHDGLOZ7P7y8AKi.json';
         
         let allItems = [];
@@ -181,26 +181,22 @@
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                // FURA-CACHE MATEMÁTICO: Anexa os milissegundos para forçar o ficheiro mais recente
+                // FURA-CACHE PARA O LINK JSON
                 const tempoExato = new Date().getTime();
                 const urlLimpa = `${JSON_FEED_URL}?forcar=${tempoExato}`;
                 
-                // Pedido super rápido porque o ficheiro já é JSON puro
                 const res = await fetch(urlLimpa, { cache: "no-store" });
                 const data = await res.json();
                 
-                // Memória específica para Novelas
                 let cachedData = JSON.parse(localStorage.getItem('historias_cache_novelas') || '[]');
                 let novosEncontrados = false;
                 
                 if(data.items && data.items.length > 0) {
                     data.items.forEach(newItem => {
-                        // Verifica se a novela já existe na memória
                         if (!cachedData.some(oldItem => oldItem.id === newItem.id || oldItem.url === newItem.url)) {
-                            // Adaptação dos campos do JSON Feed
                             cachedData.push({
                                 guid: newItem.id || newItem.url,
-                                title: newItem.title || "Novela sem título",
+                                title: newItem.title || "Novela",
                                 link: newItem.url,
                                 pubDate: newItem.date_published,
                                 thumbnail: newItem.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'
@@ -209,7 +205,6 @@
                         }
                     });
                     
-                    // Ordena sempre pela data exata
                     cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
                     localStorage.setItem('historias_cache_novelas', JSON.stringify(cachedData));
                 }
@@ -227,7 +222,6 @@
                     }
                     document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
-                    // Atualiza silenciosamente em segundo plano
                     document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
                     const feed = document.getElementById('feed');
                     feed.innerHTML = '';
@@ -254,7 +248,6 @@
                 }
             }
             
-            // Para a animação do botão se tiver sido clicado
             const btnIcon = document.querySelector('.refresh-btn i');
             if(btnIcon) btnIcon.classList.remove('fa-spin');
             
@@ -300,7 +293,6 @@
             }
         }
 
-        // Atualiza a etiqueta de tempo visual no site a cada 1 minuto
         setInterval(() => {
             if(!isSavedView && displayedItems > 0) {
                 const feed = document.getElementById('feed');
@@ -312,7 +304,7 @@
             }
         }, 60000);
 
-        // O RASTREADOR: Seguro. Procura em segundo plano vídeos novos a cada 2 minutos
+        // Verifica novos vídeos a cada 2 minutos
         setInterval(() => { fetchContent(true); }, 120000); 
 
         function openModal(item) {
@@ -440,17 +432,30 @@
     </script>
 
     <script data-cfasync="false" type="text/javascript" id="clever-core">
-        (function (document, window) {
-            var a, c = document.createElement("script"), f = window.frameElement;
-            c.id = "CleverCoreLoader101444";
-            c.src = "https://scripts.cleverwebserver.com/532b25ff0fd3ba268c101f0840b2b10a.js";
-            c.async = !0;
-            c.type = "text/javascript";
-            c.setAttribute("data-target", window.name || (f && f.getAttribute("id")));
-            try { a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0]; } catch (e) { a = !1; }
-            a || (a = document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]);
-            a.parentNode.insertBefore(c, a);
-        })(document, window);
+/* <![CDATA[ */
+    (function (document, window) {
+        var a, c = document.createElement("script"), f = window.frameElement;
+
+        c.id = "CleverCoreLoader101444";
+        c.src = "https://scripts.cleverwebserver.com/532b25ff0fd3ba268c101f0840b2b10a.js";
+
+        c.async = !0;
+        c.type = "text/javascript";
+        c.setAttribute("data-target", window.name || (f && f.getAttribute("id")));
+        c.setAttribute("data-callback", "put-your-callback-function-here");
+        c.setAttribute("data-callback-url-click", "put-your-click-macro-here");
+        c.setAttribute("data-callback-url-view", "put-your-view-macro-here");
+
+        try {
+            a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0];
+        } catch (e) {
+            a = !1;
+        }
+
+        a || (a = document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]);
+        a.parentNode.insertBefore(c, a);
+    })(document, window);
+/* ]]> */
     </script>
 </body>
 </html>
