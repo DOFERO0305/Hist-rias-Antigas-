@@ -54,7 +54,7 @@
         .side-cat:hover, .side-cat.active { background: var(--surface); color: var(--primary); }
 
         /* Feed */
-        .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+        .feed-header { max-width: 1200px; margin: 20px auto 10px; padding: 0 20px; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         .feed-count { font-size: 0.9rem; color: var(--text-meta); font-weight: normal; }
         .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; min-height: 400px; }
         @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
@@ -76,13 +76,12 @@
         .trailer-container { position: relative; width: 100%; display: flex; justify-content: center; background: #000; border-radius: var(--radius-md); overflow: hidden; min-height: 400px;}
         .trailer-container iframe { width: 100%; height: 550px; border: none; border-radius: 8px;}
         
-        /* Apenas os botões de navegação e guardar no leitor */
         .action-row { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
         .btn-action { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-next { background: #e50914; color: white; }
         .btn-icon { background: var(--surface); color: var(--text); border: 1px solid var(--border); flex: 0.3; }
 
-        /* Histórias Relacionadas (Continuar a ver) - OBRIGATÓRIO ABRIR AQUI */
+        /* Histórias Relacionadas - Abrirem dentro do agregador */
         .related-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px; }
         .related-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;}
         .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -150,8 +149,8 @@
 
     <script>
         const XML_FEED_URL = 'https://rss.app/feeds/lJ20CqMSrPIexFe7.xml';
-        // Forçamos o &count=50 para tentar puxar o máximo de resultados do teu feed
-        const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}&count=50`;
+        // REMOVIDO o &count=50 que estava a causar o erro no site.
+        const JSON_API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(XML_FEED_URL)}`;
 
         let allItems = [];
         let selectedItem = null;
@@ -184,42 +183,40 @@
                 const res = await fetch(JSON_API_URL);
                 const data = await res.json();
                 
-                if(data.status === "ok" && data.items.length > 0) {
+                if(data.status === "ok" && data.items && data.items.length > 0) {
                     
-                    // SISTEMA DE MEMÓRIA: Guarda os novos e mistura com os antigos que já havias carregado antes
-                    let cachedData = JSON.parse(localStorage.getItem('historias_cache_v1') || '[]');
+                    // SISTEMA DE MEMÓRIA (Atualizado para v2 para limpar dados corrompidos)
+                    let cachedData = JSON.parse(localStorage.getItem('historias_cache_v2') || '[]');
                     
-                    // Adiciona apenas as histórias que ainda não existem no cache
                     data.items.forEach(newItem => {
                         if (!cachedData.some(oldItem => oldItem.guid === newItem.guid)) {
                             cachedData.push(newItem);
                         }
                     });
 
-                    // Ordena das mais recentes para as mais antigas
                     cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                    
-                    // Salva a nova base de dados atualizada
-                    localStorage.setItem('historias_cache_v1', JSON.stringify(cachedData));
+                    localStorage.setItem('historias_cache_v2', JSON.stringify(cachedData));
                     
                     allItems = cachedData;
                     renderGrid(allItems);
                     
                 } else {
-                    // Se a internet falhar, tenta ler o cache antigo
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_v1') || '[]');
-                    if(allItems.length > 0) {
-                        renderGrid(allItems);
-                    } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma história encontrada.</div>";
-                    }
+                    throw new Error("O link do RSS não enviou histórias novas.");
                 }
             } catch (e) { 
-                allItems = JSON.parse(localStorage.getItem('historias_cache_v1') || '[]');
+                console.error(e);
+                // Tenta carregar as antigas da memória se a internet/link falhar
+                allItems = JSON.parse(localStorage.getItem('historias_cache_v2') || '[]');
                 if(allItems.length > 0) {
                     renderGrid(allItems);
                 } else {
-                    document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Tenta novamente.</div>";
+                    document.getElementById('feed').innerHTML = `
+                    <div class='no-results'>
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px; color: var(--primary);"></i>
+                        <h2>Nenhuma história encontrada.</h2>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">Verifica se o link do RSS.app ainda está ativo ou se a tua conta gratuita expirou.</p>
+                    </div>`;
+                    document.getElementById('feed-count-label').innerText = "Erro";
                 }
             }
             document.getElementById('loader').style.display = 'none';
@@ -229,19 +226,16 @@
             const feed = document.getElementById('feed');
             feed.innerHTML = '';
             
-            document.getElementById('feed-count-label').innerText = `${items.length} vídeos`;
+            document.getElementById('feed-count-label').innerText = `${items.length} vídeos no arquivo`;
 
-            if(items.length === 0) {
-                 feed.innerHTML = "<div class='no-results'>Nenhuma história aqui.</div>";
-                 return;
-            }
+            if(items.length === 0) return;
 
             items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.onclick = () => openModal(item);
                 
-                const imgUrl = item.thumbnail || item.enclosure.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                const imgUrl = item.thumbnail || item.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                 
                 card.innerHTML = `
                     <img class="movie-poster" src="${imgUrl}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'">
@@ -266,24 +260,22 @@
 
             document.getElementById('m-next-btn').onclick = () => playNext();
 
-            // Povoa as Histórias Relacionadas
             const relatedContainer = document.getElementById('m-related-grid');
             relatedContainer.innerHTML = '';
             
-            // Pega 6 histórias para a grelha relacionada
             const otherItems = allItems.filter(x => x.guid !== item.guid).slice(0, 6);
             
             if(otherItems.length > 0) {
                 otherItems.forEach(rel => {
-                    const imgUrl = rel.thumbnail || rel.enclosure.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                    const imgUrl = rel.thumbnail || rel.enclosure?.link || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
                     let relTitle = rel.title ? rel.title.split('#')[0].trim() : "Ver mais";
                     
                     const div = document.createElement('div');
                     div.className = 'related-item';
                     div.onclick = () => {
-                        // Importante: Ao clicar aqui, o Modal apenas se ATUALIZA e não vai para o Facebook!
+                        // IMPORTANTE: Atualiza o modal internamente sem ir para o Facebook!
                         openModal(rel); 
-                        document.querySelector('.modal-content').scrollTop = 0; // Sobe a janela para o topo do novo vídeo
+                        document.querySelector('.modal-content').scrollTop = 0; 
                     };
                     div.innerHTML = `
                         <img src="${imgUrl}">
@@ -354,10 +346,10 @@
             
             if(isSaved) { 
                 saveBtn.style.color = '#1877F2'; 
-                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Guardado'; 
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i>'; 
             } else { 
                 saveBtn.style.color = 'var(--text)'; 
-                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Guardar'; 
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i>'; 
             }
         }
 
