@@ -56,6 +56,9 @@
         .trailer-container { position: relative; width: 100%; display: flex; justify-content: center; background: #000; border-radius: var(--radius-md); overflow: hidden; min-height: 400px;}
         .trailer-container iframe { width: 100%; height: 550px; border: none; border-radius: 8px;}
         
+        .fb-fallback-btn { display: flex; justify-content: center; align-items: center; gap: 8px; background: #1877F2; color: white; text-decoration: none; padding: 12px; border-radius: var(--radius-md); font-weight: 700; margin-top: 15px; transition: 0.2s; }
+        .fb-fallback-btn:hover { background: #166fe5; transform: scale(1.02); }
+
         .action-row { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
         .btn-action { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-next { background: #e50914; color: white; }
@@ -109,6 +112,11 @@
             <button class="close-btn" onclick="closeModal(event, true)"><i class="fas fa-times"></i></button>
             <div class="modal-info">
                 <div class="trailer-container" id="m-trailer"></div>
+                
+                <a id="m-fallback-btn" href="#" target="_blank" class="fb-fallback-btn">
+                    <i class="fab fa-facebook"></i> Abrir vídeo original no Facebook
+                </a>
+
                 <h2 id="m-title" class="modal-title">Título</h2>
                 <div class="modal-time-detail" id="m-time"><i class="far fa-clock"></i> Publicado há pouco</div>
                 
@@ -126,7 +134,8 @@
     </div>
 
     <script>
-        const JSON_FEED_URL = 'https://rss.app/feeds/v1.1/pLHDGLOZ7P7y8AKi.json';
+        // O TEU NOVO LINK ATUALIZADO
+        const JSON_FEED_URL = 'https://rss.app/feeds/v1.1/cTmbwALSEul7wgx6.json';
         
         let allItems = [];
         let displayedItems = 0;
@@ -180,32 +189,42 @@
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                // VOLTAMOS AO PROXY: Para evitar o bloqueio de segurança "CORS" no formato JSON
                 const tempoExato = new Date().getTime();
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(JSON_FEED_URL + '?t=' + tempoExato)}`;
+                const urlLimpa = `${JSON_FEED_URL}?forcar=${tempoExato}`;
                 
-                const res = await fetch(proxyUrl, { cache: "no-store" });
-                const data = await res.json();
+                let data;
+                try {
+                    // Tentativa 1: Ligação Direta Rápida
+                    const res = await fetch(urlLimpa, { cache: "no-store" });
+                    data = await res.json();
+                } catch(err) {
+                    // Tentativa 2: Ligação Segura via Proxy (se o navegador bloquear)
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(urlLimpa)}`;
+                    const resProxy = await fetch(proxyUrl, { cache: "no-store" });
+                    data = await resProxy.json();
+                }
                 
-                // Mudei o nome do cache para v2 para apagar o erro antigo!
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_novelas_v2') || '[]');
+                // Mudei o cache para v3 para começar totalmente limpo
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_novelas_v3') || '[]');
                 let novosEncontrados = false;
                 
-                if(data.items && data.items.length > 0) {
+                if(data && data.items && data.items.length > 0) {
                     data.items.forEach(newItem => {
-                        // DETETIVE: Puxa o link e a imagem não importa o nome que o RSS.app lhe dê
-                        let linkReal = newItem.url || newItem.link;
+                        let linkReal = newItem.url || newItem.id || "";
                         let idReal = newItem.id || linkReal;
-                        let tituloReal = newItem.title || "Novela";
-                        let dataReal = newItem.date_published || newItem.pubDate;
+                        let tituloReal = newItem.title || "Episódio de Novela";
+                        let dataReal = newItem.date_published || new Date().toISOString();
                         
-                        let imagemCapa = newItem.image || newItem.thumbnail || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                        let imagemCapa = newItem.image || "";
                         
-                        // Se a imagem estiver escondida dentro do código HTML, ele extrai-a:
-                        if (imagemCapa === 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500' && newItem.content_html) {
-                            const imgMatch = newItem.content_html.match(/src="([^"]+)"/);
+                        // Detetive de imagens: Procura imagens escondidas no código se não vierem destacadas
+                        if (!imagemCapa && newItem.content_html) {
+                            const imgMatch = newItem.content_html.match(/src=["']([^"']+)["']/);
                             if (imgMatch) imagemCapa = imgMatch[1];
                         }
+                        
+                        // Imagem de salvaguarda caso o Facebook não envie capa
+                        if (!imagemCapa) imagemCapa = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
 
                         if (linkReal && !cachedData.some(oldItem => oldItem.guid === idReal || oldItem.link === linkReal)) {
                             cachedData.push({
@@ -220,7 +239,7 @@
                     });
                     
                     cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                    localStorage.setItem('historias_cache_novelas_v2', JSON.stringify(cachedData));
+                    localStorage.setItem('historias_cache_novelas_v3', JSON.stringify(cachedData));
                 }
                 
                 allItems = cachedData;
@@ -232,7 +251,7 @@
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems(); 
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhum episódio detetado ainda.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhum episódio encontrado ainda.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
@@ -249,14 +268,14 @@
             } catch (e) { 
                 console.error(e);
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_novelas_v2') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_novelas_v3') || '[]');
                     if(allItems.length > 0) {
                         document.getElementById('feed-count-label').innerText = `${allItems.length} episódios guardados`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems();
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica no botão azul de atualizar.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica no botão de atualizar.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 }
@@ -332,9 +351,10 @@
             const tempoStr = calcularTempoPassado(item.pubDate);
             document.getElementById('m-time').innerHTML = `<i class="far fa-clock"></i> Publicado ${tempoStr.toLowerCase()}`;
             
-            // Tratamento do URL do Facebook para garantir que roda
-            let linkLimpo = item.link;
-            const fbUrlCodificado = encodeURIComponent(linkLimpo);
+            // ATRIBUIÇÃO DO BOTÃO DE SALVAGUARDA
+            document.getElementById('m-fallback-btn').href = item.link;
+
+            const fbUrlCodificado = encodeURIComponent(item.link);
             document.getElementById('m-trailer').innerHTML = `
                 <iframe src="https://www.facebook.com/plugins/video.php?href=${fbUrlCodificado}&show_text=false&width=350" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
             `;
@@ -441,6 +461,9 @@
         }
 
         window.onload = () => { 
+            // Limpa lixo antigo por segurança no primeiro arranque
+            localStorage.removeItem('historias_cache_novelas_v2'); 
+            
             observer.observe(document.getElementById('loader'));
             fetchContent(); 
         };
