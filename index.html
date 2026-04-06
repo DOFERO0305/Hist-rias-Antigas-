@@ -126,7 +126,6 @@
     </div>
 
     <script>
-        // LINK DAS NOVELAS JSON ATUALIZADO
         const JSON_FEED_URL = 'https://rss.app/feeds/v1.1/pLHDGLOZ7P7y8AKi.json';
         
         let allItems = [];
@@ -181,48 +180,63 @@
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                // FURA-CACHE PARA O LINK JSON
+                // VOLTAMOS AO PROXY: Para evitar o bloqueio de segurança "CORS" no formato JSON
                 const tempoExato = new Date().getTime();
-                const urlLimpa = `${JSON_FEED_URL}?forcar=${tempoExato}`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(JSON_FEED_URL + '?t=' + tempoExato)}`;
                 
-                const res = await fetch(urlLimpa, { cache: "no-store" });
+                const res = await fetch(proxyUrl, { cache: "no-store" });
                 const data = await res.json();
                 
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_novelas') || '[]');
+                // Mudei o nome do cache para v2 para apagar o erro antigo!
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_novelas_v2') || '[]');
                 let novosEncontrados = false;
                 
                 if(data.items && data.items.length > 0) {
                     data.items.forEach(newItem => {
-                        if (!cachedData.some(oldItem => oldItem.id === newItem.id || oldItem.url === newItem.url)) {
+                        // DETETIVE: Puxa o link e a imagem não importa o nome que o RSS.app lhe dê
+                        let linkReal = newItem.url || newItem.link;
+                        let idReal = newItem.id || linkReal;
+                        let tituloReal = newItem.title || "Novela";
+                        let dataReal = newItem.date_published || newItem.pubDate;
+                        
+                        let imagemCapa = newItem.image || newItem.thumbnail || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                        
+                        // Se a imagem estiver escondida dentro do código HTML, ele extrai-a:
+                        if (imagemCapa === 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500' && newItem.content_html) {
+                            const imgMatch = newItem.content_html.match(/src="([^"]+)"/);
+                            if (imgMatch) imagemCapa = imgMatch[1];
+                        }
+
+                        if (linkReal && !cachedData.some(oldItem => oldItem.guid === idReal || oldItem.link === linkReal)) {
                             cachedData.push({
-                                guid: newItem.id || newItem.url,
-                                title: newItem.title || "Novela",
-                                link: newItem.url,
-                                pubDate: newItem.date_published,
-                                thumbnail: newItem.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500'
+                                guid: idReal,
+                                title: tituloReal,
+                                link: linkReal,
+                                pubDate: dataReal,
+                                thumbnail: imagemCapa
                             });
                             novosEncontrados = true;
                         }
                     });
                     
                     cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                    localStorage.setItem('historias_cache_novelas', JSON.stringify(cachedData));
+                    localStorage.setItem('historias_cache_novelas_v2', JSON.stringify(cachedData));
                 }
                 
                 allItems = cachedData;
 
                 if(!isBackground) {
                     if(allItems.length > 0) {
-                        document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
+                        document.getElementById('feed-count-label').innerText = `${allItems.length} episódios`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems(); 
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhuma novela encontrada.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Nenhum episódio detetado ainda.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
-                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos no arquivo`;
+                    document.getElementById('feed-count-label').innerText = `${allItems.length} episódios`;
                     const feed = document.getElementById('feed');
                     feed.innerHTML = '';
                     let itemsAnteriores = displayedItems;
@@ -235,14 +249,14 @@
             } catch (e) { 
                 console.error(e);
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_novelas') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_novelas_v2') || '[]');
                     if(allItems.length > 0) {
-                        document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
+                        document.getElementById('feed-count-label').innerText = `${allItems.length} episódios guardados`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems();
                     } else {
-                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica no botão azul para atualizar.</div>";
+                        document.getElementById('feed').innerHTML = "<div class='no-results'>Erro de ligação. Clica no botão azul de atualizar.</div>";
                     }
                     document.getElementById('loader').style.opacity = '0';
                 }
@@ -304,7 +318,6 @@
             }
         }, 60000);
 
-        // Verifica novos vídeos a cada 2 minutos
         setInterval(() => { fetchContent(true); }, 120000); 
 
         function openModal(item) {
@@ -319,7 +332,9 @@
             const tempoStr = calcularTempoPassado(item.pubDate);
             document.getElementById('m-time').innerHTML = `<i class="far fa-clock"></i> Publicado ${tempoStr.toLowerCase()}`;
             
-            const fbUrlCodificado = encodeURIComponent(item.link);
+            // Tratamento do URL do Facebook para garantir que roda
+            let linkLimpo = item.link;
+            const fbUrlCodificado = encodeURIComponent(linkLimpo);
             document.getElementById('m-trailer').innerHTML = `
                 <iframe src="https://www.facebook.com/plugins/video.php?href=${fbUrlCodificado}&show_text=false&width=350" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
             `;
@@ -432,30 +447,17 @@
     </script>
 
     <script data-cfasync="false" type="text/javascript" id="clever-core">
-/* <![CDATA[ */
-    (function (document, window) {
-        var a, c = document.createElement("script"), f = window.frameElement;
-
-        c.id = "CleverCoreLoader101444";
-        c.src = "https://scripts.cleverwebserver.com/532b25ff0fd3ba268c101f0840b2b10a.js";
-
-        c.async = !0;
-        c.type = "text/javascript";
-        c.setAttribute("data-target", window.name || (f && f.getAttribute("id")));
-        c.setAttribute("data-callback", "put-your-callback-function-here");
-        c.setAttribute("data-callback-url-click", "put-your-click-macro-here");
-        c.setAttribute("data-callback-url-view", "put-your-view-macro-here");
-
-        try {
-            a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0];
-        } catch (e) {
-            a = !1;
-        }
-
-        a || (a = document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]);
-        a.parentNode.insertBefore(c, a);
-    })(document, window);
-/* ]]> */
+        (function (document, window) {
+            var a, c = document.createElement("script"), f = window.frameElement;
+            c.id = "CleverCoreLoader101444";
+            c.src = "https://scripts.cleverwebserver.com/532b25ff0fd3ba268c101f0840b2b10a.js";
+            c.async = !0;
+            c.type = "text/javascript";
+            c.setAttribute("data-target", window.name || (f && f.getAttribute("id")));
+            try { a = parent.document.getElementsByTagName("script")[0] || document.getElementsByTagName("script")[0]; } catch (e) { a = !1; }
+            a || (a = document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]);
+            a.parentNode.insertBefore(c, a);
+        })(document, window);
     </script>
 </body>
 </html>
