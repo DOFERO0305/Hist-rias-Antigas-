@@ -48,40 +48,47 @@
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(8px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
         .modal-content { background: var(--bg); max-width: 500px; width: 100%; border-radius: 16px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8); max-height: 95vh; overflow-y: auto; border: 1px solid var(--border); }
-        .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); color: white; border: 1px solid rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; transition: 0.2s; }
+        
+        /* FECHAR MODAL: Z-index altíssimo para nunca ser bloqueado pelo escudo */
+        .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); color: white; border: 1px solid rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 9999; transition: 0.2s; }
         
         .modal-info { padding: 20px; }
         .modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 5px; color: var(--text); line-height: 1.3; margin-top: 10px; }
         .modal-time-detail { font-size: 0.8rem; color: var(--text-meta); margin-bottom: 15px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid var(--border); padding-bottom: 15px;}
         
-        /* Container do Player e Escudos Invisíveis */
+        /* Container do Player */
         .trailer-container { position: relative; width: 100%; display: flex; justify-content: center; background: #000; border-radius: var(--radius-md); overflow: hidden; min-height: 400px;}
         .trailer-container iframe { width: 100%; height: 550px; border: none; border-radius: 8px;}
         
-        /* Escudo 1: Bloqueia clique no Perfil do Instagram (Topo) */
-        .shield-top { position: absolute; top: 0; left: 0; width: 100%; height: 60px; z-index: 50; cursor: default; }
+        /* Escudo 1 (Topo): Bloqueia Perfil - Z-index menor que o botão X */
+        .shield-top { position: absolute; top: 0; left: 0; width: 100%; height: 65px; z-index: 50; cursor: default; }
         
-        /* Escudo 2: Bloqueia clique no botão "Ver mais no Instagram" (Rodapé) */
-        .shield-bottom { position: absolute; bottom: 0; left: 0; width: 100%; height: 60px; z-index: 50; cursor: default; }
+        /* Escudo 2 (Rodapé): Bloqueia Instagram e Tela Final - Mais alto para garantir proteção */
+        .shield-bottom { position: absolute; bottom: 0; left: 0; width: 100%; height: 110px; z-index: 50; cursor: default; }
 
+        /* Banner Inteligente Animado e Estático */
         .up-next-banner {
             background: var(--primary); color: #000; padding: 15px 20px; border-radius: var(--radius-md);
             margin-top: 15px; margin-bottom: 15px; display: flex; justify-content: space-between;
-            align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-            opacity: 0; transform: translateY(20px); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            display: none; 
+            align-items: center; cursor: pointer; 
+            animation: pulse-banner 2s infinite ease-in-out;
         }
-        .up-next-banner.show { display: flex; opacity: 1; transform: translateY(0); }
-        .up-next-banner:hover { transform: scale(1.02); }
+        @keyframes pulse-banner {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 0 25px rgba(212, 175, 55, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); }
+        }
         .up-next-info h4 { font-size: 0.75rem; text-transform: uppercase; opacity: 0.9; margin-bottom: 4px; letter-spacing: 1px; color: #000; }
         .up-next-info p { font-size: 1.1rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; color: #000; }
         @media(max-width: 400px) { .up-next-info p { max-width: 180px; } }
 
+        /* Nova Linha de Ação: Apenas Botão de Guardar Grande */
         .action-row { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
-        .btn-action { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-next { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-        .btn-icon { background: var(--surface); color: var(--text); border: 1px solid var(--border); flex: 0.3; }
+        .btn-action { flex: 1; padding: 15px; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s; }
+        .btn-guardar { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-guardar:hover { border-color: var(--primary); color: var(--primary); }
 
+        /* Relacionados com Filtro Focado */
         .related-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px; }
         .related-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;}
         .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -170,8 +177,9 @@
                 <div class="modal-time-detail" id="m-time"><i class="far fa-clock"></i> Publicado há pouco</div>
                 
                 <div class="action-row">
-                    <button id="m-next-btn" class="btn-action btn-next"><i class="fas fa-step-forward"></i> Próximo</button>
-                    <button id="m-save-btn" class="btn-action btn-icon" onclick="toggleSave()"><i class="far fa-bookmark"></i></button>
+                    <button id="m-save-btn" class="btn-action btn-guardar" onclick="toggleSave()">
+                        <i class="far fa-bookmark"></i> Guardar para Assistir Mais Tarde
+                    </button>
                 </div>
 
                 <div class="related-section" id="related-section">
@@ -192,7 +200,6 @@
         let isSavedView = false;
         let currentIndex = 0;
         let isFetching = false;
-        let nextItemTimeout;
         let recomendadoAtual = null;
 
         function calcularTempoPassado(dataPublicacao) {
@@ -255,9 +262,7 @@
                     } catch(e) {}
                 }
 
-                if (!data || !data.items || !Array.isArray(data.items)) {
-                    throw new Error("Erro de dados.");
-                }
+                if (!data || !data.items || !Array.isArray(data.items)) throw new Error("Erro de dados.");
                 
                 let cachedData = JSON.parse(localStorage.getItem('historias_antigas_cache_v1') || '[]');
                 let novosEncontrados = false;
@@ -269,7 +274,6 @@
                     let dataReal = newItem.date_published || new Date().toISOString();
                     
                     let imagemCapa = newItem.image || "";
-                    
                     if (!imagemCapa && newItem.content_html) {
                         const imgMatch = newItem.content_html.match(/src=["']([^"']+)["']/);
                         if (imgMatch) imagemCapa = imgMatch[1];
@@ -282,20 +286,13 @@
                     }
 
                     if (linkReal && !cachedData.some(oldItem => oldItem.guid === idReal || oldItem.link === linkReal)) {
-                        cachedData.push({
-                            guid: idReal,
-                            title: tituloReal,
-                            link: linkReal,
-                            pubDate: dataReal,
-                            thumbnail: imagemCapa
-                        });
+                        cachedData.push({ guid: idReal, title: tituloReal, link: linkReal, pubDate: dataReal, thumbnail: imagemCapa });
                         novosEncontrados = true;
                     }
                 });
                 
                 cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
                 localStorage.setItem('historias_antigas_cache_v1', JSON.stringify(cachedData));
-                
                 allItems = cachedData;
 
                 if(!isBackground) {
@@ -308,18 +305,6 @@
                     } else {
                         labelMsg.innerText = "À espera de conteúdo...";
                     }
-                    
-                    if(!novosEncontrados && allItems.length > 0) {
-                        let originalText = `${allItems.length} vídeos disponíveis`;
-                        labelMsg.innerText = "À espera do RSS.app...";
-                        labelMsg.style.color = "var(--primary)"; 
-                        
-                        setTimeout(() => {
-                            labelMsg.innerText = originalText;
-                            labelMsg.style.color = "var(--text-meta)";
-                        }, 4000);
-                    }
-                    
                     document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
                     document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos disponíveis`;
@@ -349,7 +334,6 @@
             
             const btnIcon = document.querySelector('.refresh-btn i');
             if(btnIcon) btnIcon.classList.remove('fa-spin');
-            
             isFetching = false;
         }
 
@@ -401,19 +385,20 @@
 
         setInterval(() => { fetchContent(true); }, 60000); 
 
+        // NOVO: Algoritmo Inteligente sem Loop (Analisa sempre em Frente)
         function encontrarProximoInteligente(itemAtual, lista) {
             let tituloAtual = (itemAtual.title || "").toLowerCase();
             let match = tituloAtual.match(/(?:parte|pt|ep|episódio|capítulo)\s*(\d+)/i);
             
+            // 1. Tentar encontrar a "Parte 2, Parte 3..." exata
             if (match) {
-                let numAtual = parseInt(match[1]);
-                let numProximo = numAtual + 1;
+                let numProximo = parseInt(match[1]) + 1;
                 let tituloBase = tituloAtual.replace(/(?:parte|pt|ep|episódio|capítulo)\s*\d+/i, '').trim();
                 let keywords = tituloBase.match(/\b\w{4,}\b/g) || [];
                 
-                for (let i = 0; i < lista.length; i++) {
-                    let cand = lista[i];
-                    if (cand.guid === itemAtual.guid) continue;
+                for (let i = 1; i < lista.length; i++) {
+                    let idx = (currentIndex + i) % lista.length;
+                    let cand = lista[idx];
                     let candTitulo = (cand.title || "").toLowerCase();
                     let candMatch = candTitulo.match(/(?:parte|pt|ep|episódio|capítulo)\s*(\d+)/i);
                     
@@ -425,23 +410,23 @@
                 }
             }
             
-            let keywords = tituloAtual.match(/\b\w{4,}\b/g) || [];
-            let melhorScore = -1;
-            let melhorCand = lista[(currentIndex + 1) % lista.length]; 
+            // 2. Se não tiver partes, busca pelo mesmo assunto na frente para não voltar atrás (Evita Loop)
+            let keywords = tituloAtual.match(/\b\w{5,}\b/g) || [];
             
-            lista.forEach(cand => {
-                if(cand.guid === itemAtual.guid) return;
-                let score = 0;
-                let candText = ((cand.title || "") + " " + (cand.link || "")).toLowerCase();
-                keywords.forEach(kw => { if(candText.includes(kw)) score++; });
-                
-                if(score > melhorScore && score > 0) { 
-                    melhorScore = score;
-                    melhorCand = cand;
+            if (keywords.length > 0) {
+                for (let i = 1; i < lista.length; i++) {
+                    let idx = (currentIndex + i) % lista.length;
+                    let cand = lista[idx];
+                    let candTitulo = (cand.title || "").toLowerCase();
+                    let matches = 0;
+                    
+                    keywords.forEach(kw => { if(candTitulo.includes(kw)) matches++; });
+                    if (matches > 0) return cand;
                 }
-            });
+            }
             
-            return melhorCand;
+            // 3. Se nada for parecido, apenas segue para o vídeo mais recente/próximo da lista
+            return lista[(currentIndex + 1) % lista.length];
         }
 
         function openModal(item) {
@@ -464,7 +449,7 @@
                 if (!urlLimpa.endsWith('/')) { urlLimpa += '/'; }
                 let urlEmbedIg = urlLimpa + 'embed/?hidecaption=true';
                 
-                /* INJEÇÃO DOS ESCUDOS INVISÍVEIS */
+                // ESCUDOS REFORÇADOS: Z-index=50 (para não tapar o botão X) e Altura Máxima no rodapé
                 embedHtml = `
                     <div class="shield-top"></div>
                     <iframe src="${urlEmbedIg}" width="100%" height="550" frameborder="0" scrolling="no" allowtransparency="true"></iframe>
@@ -475,30 +460,40 @@
             }
             
             document.getElementById('m-trailer').innerHTML = embedHtml;
-            document.getElementById('m-next-btn').onclick = () => playNext(currentList);
 
-            clearTimeout(nextItemTimeout); 
-            const upNextBanner = document.getElementById('m-up-next');
-            upNextBanner.classList.remove('show');
-            upNextBanner.style.display = 'none'; 
-            
+            // Define o Próximo Vídeo Inteligente e mostra no Banner Permanente
             recomendadoAtual = encontrarProximoInteligente(item, currentList);
+            const upNextBanner = document.getElementById('m-up-next');
             
             if (recomendadoAtual) {
                 let tituloRecomendado = recomendadoAtual.title ? recomendadoAtual.title.split('#')[0].trim() : "Próximo Episódio";
                 document.getElementById('m-up-next-title').innerText = tituloRecomendado;
-                
-                upNextBanner.style.display = 'flex';
-                nextItemTimeout = setTimeout(() => { upNextBanner.classList.add('show'); }, 15000); 
+                upNextBanner.style.display = 'flex'; // SEM ATRASO (Estático e Animado via CSS)
+            } else {
+                upNextBanner.style.display = 'none';
             }
 
+            // Grelha de Relacionados: FILTRO APENAS POR TÍTULO PARECIDO
             const relatedContainer = document.getElementById('m-related-grid');
             relatedContainer.innerHTML = '';
             
-            const otherItems = currentList.filter(x => x.guid !== item.guid).slice(0, 6);
+            const itemKeywords = (item.title || "").toLowerCase().match(/\b\w{5,}\b/g) || [];
+            let relatedItems = currentList.filter(x => {
+                if(x.guid === item.guid) return false;
+                let candTitle = (x.title || "").toLowerCase();
+                let matches = 0;
+                itemKeywords.forEach(kw => { if(candTitle.includes(kw)) matches++; });
+                x.matchScore = matches;
+                return matches > 0 || itemKeywords.length === 0; // Só entra se tiver pontuação
+            }).sort((a,b) => b.matchScore - a.matchScore).slice(0, 6);
             
-            if(otherItems.length > 0) {
-                otherItems.forEach(rel => {
+            // Se não encontrou nenhuns relacionados, usa os da mesma altura de publicação
+            if(relatedItems.length === 0) {
+                relatedItems = currentList.filter(x => x.guid !== item.guid).slice(0, 6);
+            }
+
+            if(relatedItems.length > 0) {
+                relatedItems.forEach(rel => {
                     let relTitle = rel.title ? rel.title.split('#')[0].trim() : "Ver mais";
                     const div = document.createElement('div');
                     div.className = 'related-item';
@@ -523,19 +518,11 @@
             }
         }
 
-        function playNext(list) {
-            currentIndex++;
-            if (currentIndex >= list.length) { currentIndex = 0; }
-            openModal(list[currentIndex]);
-            document.querySelector('.modal-content').scrollTop = 0;
-        }
-
         function closeModal(event, force = false) {
             if (force || event.target.id === 'modal') {
                 document.getElementById('modal').style.display = 'none';
                 document.body.style.overflow = 'auto';
                 document.getElementById('m-trailer').innerHTML = ''; 
-                clearTimeout(nextItemTimeout); 
             }
         }
 
@@ -591,11 +578,13 @@
             const saveBtn = document.getElementById('m-save-btn');
             
             if(isSaved) { 
-                saveBtn.style.color = 'var(--primary)'; 
-                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Guardado'; 
+                saveBtn.style.color = 'var(--primary)';
+                saveBtn.style.borderColor = 'var(--primary)';
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Guardado na Lista'; 
             } else { 
                 saveBtn.style.color = 'var(--text)'; 
-                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Guardar'; 
+                saveBtn.style.borderColor = 'var(--border)';
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Guardar para Assistir Mais Tarde'; 
             }
         }
 
